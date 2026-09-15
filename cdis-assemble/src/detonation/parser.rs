@@ -194,8 +194,8 @@ mod tests {
                 detonation.entity_linear_velocity,
                 LinearVelocity::new(SVINT16::from(1), SVINT16::from(1), SVINT16::from(1))
             );
-            assert_eq!(detonation.location_in_world_coordinates.latitude, 0.0);
-            assert_eq!(detonation.location_in_world_coordinates.longitude, 0.0);
+            assert_eq!(detonation.location_in_world_coordinates.latitude, 0);
+            assert_eq!(detonation.location_in_world_coordinates.longitude, 0);
             assert_eq!(
                 detonation.location_in_world_coordinates.altitude_msl,
                 SVINT24::from(1)

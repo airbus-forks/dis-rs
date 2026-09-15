@@ -58,7 +58,7 @@ mod tests {
             ),
             event_id: EntityId::new(UVINT16::from(1), UVINT16::from(1), UVINT16::from(3)),
             fire_mission_index: None,
-            location_world_coordinates: WorldCoordinates::new(0.0, 0.0, SVINT24::from(1)),
+            location_world_coordinates: WorldCoordinates::new(0, 0, SVINT24::from(1)),
             descriptor_entity_type: EntityType::new(
                 2,
                 2,

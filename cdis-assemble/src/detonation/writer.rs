@@ -101,8 +101,8 @@ mod tests {
                 SVINT16::from(1),
             ),
             location_in_world_coordinates: WorldCoordinates {
-                latitude: 0.0,
-                longitude: 0.0,
+                latitude: 0,
+                longitude: 0,
                 altitude_msl: SVINT24::from(1),
             },
             descriptor_entity_type: EntityType::new(

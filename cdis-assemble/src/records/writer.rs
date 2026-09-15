@@ -111,8 +111,8 @@ impl SerializeCdis for WorldCoordinates {
     #[allow(clippy::let_and_return)]
     #[allow(clippy::cast_possible_truncation)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
-        let cursor = write_value_signed(buf, cursor, THIRTY_ONE_BITS, self.latitude as i32);
-        let cursor = write_value_signed(buf, cursor, THIRTY_TWO_BITS, self.longitude as i32);
+        let cursor = write_value_signed(buf, cursor, THIRTY_ONE_BITS, self.latitude);
+        let cursor = write_value_signed(buf, cursor, THIRTY_TWO_BITS, self.longitude);
         let cursor = self.altitude_msl.serialize(buf, cursor);
 
         cursor

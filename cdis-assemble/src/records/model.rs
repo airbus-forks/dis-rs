@@ -19,7 +19,7 @@ use dis_rs::enumerations::{
     TransmitterAntennaPatternReferenceSystem,
 };
 use dis_rs::model::{
-    DatumSpecification, EventId, FixedDatum, Location, PduStatus, SimulationAddress, VariableDatum,
+    DatumSpecification, EventId, FixedDatum, PduStatus, SimulationAddress, VariableDatum,
 };
 use nom::{IResult, bits::complete::take};
 use num_traits::FromPrimitive;
@@ -833,14 +833,14 @@ impl CdisMarkingCharEncoding {
 /// 11.27 World Coordinates Record
 #[derive(Default, Copy, Clone, Debug, PartialEq)]
 pub struct WorldCoordinates {
-    pub latitude: f32,
-    pub longitude: f32,
+    pub latitude: i32,
+    pub longitude: i32,
     pub altitude_msl: SVINT24,
 }
 
 impl WorldCoordinates {
     #[must_use]
-    pub fn new(latitude: f32, longitude: f32, altitude_msl: SVINT24) -> Self {
+    pub fn new(latitude: i32, longitude: i32, altitude_msl: SVINT24) -> Self {
         Self {
             latitude,
             longitude,
@@ -853,28 +853,6 @@ impl CdisRecord for WorldCoordinates {
     fn record_length(&self) -> usize {
         const CONST_BIT_SIZE: usize = 63; // lat + lon
         CONST_BIT_SIZE + self.altitude_msl.record_length()
-    }
-}
-
-impl From<WorldCoordinates> for Location {
-    /// Applies Geo to ECEF conversion
-    ///
-    /// Adapted from <https://danceswithcode.net/engineeringnotes/geodetic_to_ecef/geodetic_to_ecef.html>
-    fn from(value: WorldCoordinates) -> Self {
-        // TODO account for the scaling of lat
-        // TODO account for the scaling of lon
-        // TODO use of the Units flag - correct calculation of Altitude MSL
-        let (ecef_x, ecef_y, ecef_z) = dis_rs::utils::geodetic_lla_to_ecef(
-            f64::from(value.latitude),
-            f64::from(value.longitude),
-            f64::from(value.altitude_msl.value),
-        );
-
-        Self {
-            x_coordinate: ecef_x,
-            y_coordinate: ecef_y,
-            z_coordinate: ecef_z,
-        }
     }
 }
 

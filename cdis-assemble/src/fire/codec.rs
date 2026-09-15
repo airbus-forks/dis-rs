@@ -375,8 +375,8 @@ mod tests {
             event_id: EntityId::new(UVINT16::from(10), UVINT16::from(10), UVINT16::from(1)),
             fire_mission_index: Some(UVINT32::from(100)),
             location_world_coordinates: WorldCoordinates::new(
-                620_384_200_f32,
-                59_652_240_f32,
+                620_384_200,
+                59_652_240,
                 SVINT24::from(1987),
             ),
             descriptor_entity_type: EntityType::new(
@@ -447,8 +447,8 @@ mod tests {
             event_id: EntityId::new(UVINT16::from(10), UVINT16::from(10), UVINT16::from(1)),
             fire_mission_index: Some(UVINT32::from(100)),
             location_world_coordinates: WorldCoordinates::new(
-                620_384_200_f32,
-                59_652_240_f32,
+                620_384_200,
+                59_652_240,
                 SVINT24::from(1987),
             ),
             descriptor_entity_type: EntityType::new(

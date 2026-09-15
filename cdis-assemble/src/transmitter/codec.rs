@@ -423,15 +423,15 @@ impl Codec for BeamAntennaPattern {
 
     fn encode(item: &Self::Counterpart) -> Self {
         Self {
-            beam_direction_psi: (item.beam_direction.psi * Self::SCALING) as i16,
-            beam_direction_theta: (item.beam_direction.theta * Self::SCALING) as i16,
-            beam_direction_phi: (item.beam_direction.phi * Self::SCALING) as i16,
-            az_beamwidth: (item.azimuth_beamwidth * Self::SCALING) as i16,
-            el_beamwidth: (item.elevation_beamwidth * Self::SCALING) as i16,
+            beam_direction_psi: (item.beam_direction.psi * Self::SCALING).round() as i16,
+            beam_direction_theta: (item.beam_direction.theta * Self::SCALING).round() as i16,
+            beam_direction_phi: (item.beam_direction.phi * Self::SCALING).round() as i16,
+            az_beamwidth: (item.azimuth_beamwidth * Self::SCALING).round() as i16,
+            el_beamwidth: (item.elevation_beamwidth * Self::SCALING).round() as i16,
             reference_system: item.reference_system,
-            e_z: item.e_z as i16, // TODO is this encoding correct?)
-            e_x: item.e_x as i16, // TODO is this encoding correct?)
-            phase: (item.phase * Self::SCALING) as i16,
+            e_z: item.e_z.round() as i16, // TODO is this encoding correct?)
+            e_x: item.e_x.round() as i16, // TODO is this encoding correct?)
+            phase: (item.phase * Self::SCALING).round() as i16,
         }
     }
 

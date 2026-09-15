@@ -14,7 +14,6 @@ use crate::records::model::{
 };
 use crate::types::model::{CdisFloat, SVINT24, UVINT8, UVINT16};
 use crate::types::parser::{svint12, svint13, svint14, svint16, svint24, uvint8, uvint16};
-use bitvec::macros::internal::funty::Floating;
 use dis_rs::enumerations::{
     ArticulatedPartsTypeClass, ArticulatedPartsTypeMetric, AttachedPartDetachedIndicator,
     AttachedParts, ChangeIndicator, EntityAssociationAssociationStatus,
@@ -196,22 +195,16 @@ pub(crate) fn entity_marking(input: BitInput) -> IResult<BitInput, CdisEntityMar
 }
 
 #[allow(clippy::cast_precision_loss)]
-const WORLD_COORDINATES_LAT_SCALE: f32 = (2usize.pow(30) - 1) as f32 / (f32::PI / 2.0);
-const WORLD_COORDINATES_LON_SCALE: f32 = (2usize.pow(31) - 1) as f32 / (f32::PI);
-
-#[allow(clippy::cast_precision_loss)]
 pub(crate) fn world_coordinates(input: BitInput) -> IResult<BitInput, WorldCoordinates> {
     let (input, latitude): (BitInput, isize) = take_signed(THIRTY_ONE_BITS)(input)?;
-    let latitude = latitude as f32 / WORLD_COORDINATES_LAT_SCALE;
     let (input, longitude): (BitInput, isize) = take_signed(THIRTY_TWO_BITS)(input)?;
-    let longitude = longitude as f32 / WORLD_COORDINATES_LON_SCALE;
     let (input, altitude_msl): (BitInput, SVINT24) = svint24(input)?;
 
     Ok((
         input,
         WorldCoordinates {
-            latitude,
-            longitude,
+            latitude: latitude as i32,
+            longitude: longitude as i32,
             altitude_msl,
         },
     ))

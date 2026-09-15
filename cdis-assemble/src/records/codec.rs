@@ -94,9 +94,9 @@ impl Codec for LinearVelocity {
 
     fn encode(item: &Self::Counterpart) -> Self {
         Self {
-            x: SVINT16::from((item.first_vector_component * Self::CONVERSION) as i16),
-            y: SVINT16::from((item.second_vector_component * Self::CONVERSION) as i16),
-            z: SVINT16::from((item.third_vector_component * Self::CONVERSION) as i16),
+            x: SVINT16::from((item.first_vector_component * Self::CONVERSION).round() as i16),
+            y: SVINT16::from((item.second_vector_component * Self::CONVERSION).round() as i16),
+            z: SVINT16::from((item.third_vector_component * Self::CONVERSION).round() as i16),
         }
     }
 
@@ -121,9 +121,9 @@ impl Codec for Orientation {
     #[allow(clippy::cast_possible_truncation)]
     fn encode(item: &Self::Counterpart) -> Self {
         Self {
-            psi: (normalize_radians_to_plus_minus_pi(item.psi) * Self::SCALING) as i16,
-            theta: (normalize_radians_to_plus_minus_pi(item.theta) * Self::SCALING) as i16,
-            phi: (normalize_radians_to_plus_minus_pi(item.phi) * Self::SCALING) as i16,
+            psi: (normalize_radians_to_plus_minus_pi(item.psi) * Self::SCALING).round() as i16,
+            theta: (normalize_radians_to_plus_minus_pi(item.theta) * Self::SCALING).round() as i16,
+            phi: (normalize_radians_to_plus_minus_pi(item.phi) * Self::SCALING).round() as i16,
         }
     }
 
@@ -183,9 +183,9 @@ impl Codec for LinearAcceleration {
     #[allow(clippy::cast_possible_truncation)]
     fn encode(item: &Self::Counterpart) -> Self {
         Self {
-            x: SVINT14::from((item.first_vector_component * Self::CONVERSION) as i16),
-            y: SVINT14::from((item.second_vector_component * Self::CONVERSION) as i16),
-            z: SVINT14::from((item.third_vector_component * Self::CONVERSION) as i16),
+            x: SVINT14::from((item.first_vector_component * Self::CONVERSION).round() as i16),
+            y: SVINT14::from((item.second_vector_component * Self::CONVERSION).round() as i16),
+            z: SVINT14::from((item.third_vector_component * Self::CONVERSION).round() as i16),
         }
     }
 
@@ -216,13 +216,13 @@ impl Codec for AngularVelocity {
     fn encode(item: &Self::Counterpart) -> Self {
         Self {
             x: SVINT12::from(
-                (item.first_vector_component * Self::CONVERSION * Self::SCALING) as i16,
+                (item.first_vector_component * Self::CONVERSION * Self::SCALING).round() as i16,
             ),
             y: SVINT12::from(
-                (item.second_vector_component * Self::CONVERSION * Self::SCALING) as i16,
+                (item.second_vector_component * Self::CONVERSION * Self::SCALING).round() as i16,
             ),
             z: SVINT12::from(
-                (item.third_vector_component * Self::CONVERSION * Self::SCALING) as i16,
+                (item.third_vector_component * Self::CONVERSION * Self::SCALING).round() as i16,
             ),
         }
     }
@@ -362,7 +362,7 @@ pub(crate) fn encode_entity_coordinate_vector_meters(
 
 /// Helper function to convert `f32` values to `i16`, taking the max and min of `i16` when the `f32` value is out of `i16`'s range.
 fn f32_to_i16_without_overflow(value: f32) -> i16 {
-    i16::from_f32(value).unwrap_or_else(|| {
+    i16::from_f32(value.round()).unwrap_or_else(|| {
         if value.is_positive() {
             i16::MAX
         } else {
@@ -412,8 +412,8 @@ pub(crate) fn encode_world_coordinates(
     {
         (
             WorldCoordinates {
-                latitude: 0.0,
-                longitude: 0.0,
+                latitude: 0,
+                longitude: 0,
                 altitude_msl: SVINT24::from(CENTER_OF_EARTH_ALTITUDE),
             },
             UnitsDekameters::Dekameter,
@@ -439,8 +439,11 @@ pub(crate) fn encode_world_coordinates(
 
         #[allow(clippy::cast_possible_truncation)]
         #[allow(clippy::cast_precision_loss)]
-        let world_coordinates =
-            WorldCoordinates::new(lat as f32, lon as f32, SVINT24::from(alt as i32));
+        let world_coordinates = WorldCoordinates::new(
+            lat.round() as i32,
+            lon.round() as i32,
+            SVINT24::from(alt.round() as i32),
+        );
 
         (world_coordinates, units)
     }
@@ -454,20 +457,25 @@ pub(crate) fn decode_world_coordinates(
     lla_location: &WorldCoordinates,
     units: UnitsDekameters,
 ) -> Location {
-    const CENTIMETER_PER_METER: f32 = 100f32;
-    const METER_PER_DEKAMETER: f32 = 10f32;
+    const CENTIMETER_PER_METER: f64 = 100.0;
+    const METER_PER_DEKAMETER: f64 = 10.0;
 
     let alt = match units {
         UnitsDekameters::Centimeter => {
-            lla_location.altitude_msl.value as f32 / CENTIMETER_PER_METER
+            f64::from(lla_location.altitude_msl.value) / CENTIMETER_PER_METER
         }
-        UnitsDekameters::Dekameter => lla_location.altitude_msl.value as f32 * METER_PER_DEKAMETER,
+        UnitsDekameters::Dekameter => {
+            f64::from(lla_location.altitude_msl.value) * METER_PER_DEKAMETER
+        }
     };
 
-    let lat = lla_location.latitude / ((2.0_f32.powi(30) - 1.0) / std::f32::consts::FRAC_PI_2);
-    let lon = lla_location.longitude / ((2.0_f32.powi(31) - 1.0) / std::f32::consts::PI);
+    // TODO: Handle special case for centre of Earth, indicated by: alt = CENTER_OF_EARTH_ALTITUDE (SISO-STD-023: §7.1/c, §9/e)
 
-    let (x, y, z) = geodetic_lla_to_ecef(f64::from(lat), f64::from(lon), f64::from(alt));
+    let lat =
+        f64::from(lla_location.latitude) / ((2.0_f64.powi(30) - 1.0) / std::f64::consts::FRAC_PI_2);
+    let lon = f64::from(lla_location.longitude) / ((2.0_f64.powi(31) - 1.0) / std::f64::consts::PI);
+
+    let (x, y, z) = geodetic_lla_to_ecef(lat, lon, alt);
     Location::new(x, y, z)
 }
 
@@ -774,7 +782,7 @@ mod tests {
 
         assert_eq!(cdis.x.value, 0i16);
         assert_eq!(cdis.y.value, 2047i16);
-        assert_eq!(cdis.z.value, -511);
+        assert_eq!(cdis.z.value, -512);
     }
 
     #[test]
@@ -805,24 +813,24 @@ mod tests {
         let (cdis, units) = encode_world_coordinates(&dis);
 
         assert_eq!(units, UnitsDekameters::Centimeter);
-        assert_eq!(cdis.latitude, 620_384_200_f32); // scaled value
+        assert_eq!(cdis.latitude, 620_384_163); // scaled value
         assert_eq!(
-            (cdis.latitude / ((2.0_f32.powi(30) - 1.0) / std::f32::consts::FRAC_PI_2))
+            (f64::from(cdis.latitude) / ((2.0_f64.powi(30) - 1.0) / std::f64::consts::FRAC_PI_2))
                 .to_degrees()
                 .round(),
             52.0
         ); // unscaled and in degrees
-        assert_eq!(cdis.longitude, 59_652_240_f32); // scaled value
-        assert_eq!(cdis.altitude_msl.value, 1987); // ~ 19.87 meters
+        assert_eq!(cdis.longitude, 59_652_242); // scaled value
+        assert_eq!(cdis.altitude_msl.value, 1988); // ~ 19.88 meters
     }
 
     #[test]
     fn entity_location_decode() {
-        let cdis = WorldCoordinates::new(620_384_200_f32, 59_652_240_f32, SVINT24::from(1987));
+        let cdis = WorldCoordinates::new(620_384_200, 59_652_240, SVINT24::from(1987));
         let units = UnitsDekameters::Centimeter;
         let dis = decode_world_coordinates(&cdis, units);
 
-        assert_eq!(dis.x_coordinate.round(), 3_919_998.0);
+        assert_eq!(dis.x_coordinate.round(), 3_919_999.0);
         assert_eq!(dis.y_coordinate.round(), 342_955.0);
         assert_eq!(dis.z_coordinate.round(), 5_002_819.0);
     }
@@ -832,8 +840,8 @@ mod tests {
         let dis = dis_rs::model::Location::new(0.0, 0.0, 0.0);
         let (cdis, units) = encode_world_coordinates(&dis);
 
-        assert_eq!(cdis.latitude, 0.0);
-        assert_eq!(cdis.longitude, 0.0);
+        assert_eq!(cdis.latitude, 0);
+        assert_eq!(cdis.longitude, 0);
         assert_eq!(cdis.altitude_msl.value, -8_388_608);
         assert_eq!(units, UnitsDekameters::Dekameter);
     }
@@ -844,7 +852,7 @@ mod tests {
         let (cdis, units) = encode_world_coordinates(&dis_in);
         let dis_out = decode_world_coordinates(&cdis, units);
 
-        assert_eq!(dis_in.x_coordinate, dis_out.x_coordinate.ceil());
+        assert_eq!(dis_in.x_coordinate, dis_out.x_coordinate.round());
         assert_eq!(dis_in.y_coordinate, dis_out.y_coordinate.round());
         assert_eq!(dis_in.z_coordinate, dis_out.z_coordinate.round());
     }
@@ -855,7 +863,7 @@ mod tests {
         let (cdis, units) = encode_world_coordinates(&dis_in);
         let dis_out = decode_world_coordinates(&cdis, units);
 
-        assert_eq!(dis_in.x_coordinate, dis_out.x_coordinate.ceil());
+        assert_eq!(dis_in.x_coordinate, dis_out.x_coordinate.round());
         assert_eq!(dis_in.y_coordinate, dis_out.y_coordinate.round());
         assert_eq!(dis_in.z_coordinate, dis_out.z_coordinate.round());
     }
@@ -866,10 +874,10 @@ mod tests {
         let cdis = Orientation::encode(&dis);
         let dis_2 = cdis.decode();
 
-        assert_eq!(cdis.psi, 4094);
+        assert_eq!(cdis.psi, 4095);
         assert_eq!(cdis.theta, 0);
 
-        assert_eq!(dis_2.psi, 3.140_825_5);
+        assert_eq!(dis_2.psi, 3.141_592_5);
         assert_eq!(dis_2.theta, 0.0);
 
         let cdis = Orientation::new(1, 4095, -4096);

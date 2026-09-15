@@ -152,8 +152,8 @@ mod tests {
                 fire.event_id,
                 EntityId::new(UVINT16::from(1), UVINT16::from(1), UVINT16::from(3))
             );
-            assert_eq!(fire.location_world_coordinates.latitude, 0.0);
-            assert_eq!(fire.location_world_coordinates.longitude, 0.0);
+            assert_eq!(fire.location_world_coordinates.latitude, 0);
+            assert_eq!(fire.location_world_coordinates.longitude, 0);
             assert_eq!(
                 fire.location_world_coordinates.altitude_msl,
                 SVINT24::from(1)

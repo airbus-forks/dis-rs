@@ -327,8 +327,8 @@ mod tests {
                 SVINT16::from(1),
             ),
             location_in_world_coordinates: WorldCoordinates::new(
-                620_384_200_f32,
-                59_652_240_f32,
+                620_384_200,
+                59_652_240,
                 SVINT24::from(1987),
             ),
             descriptor_entity_type: EntityType::new(
@@ -433,8 +433,8 @@ mod tests {
                 SVINT16::from(1),
             ),
             location_in_world_coordinates: WorldCoordinates::new(
-                620_384_200_f32,
-                59_652_240_f32,
+                620_384_200,
+                59_652_240,
                 SVINT24::from(1987),
             ),
             descriptor_entity_type: EntityType::new(
