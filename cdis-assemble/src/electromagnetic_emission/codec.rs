@@ -296,6 +296,10 @@ impl ElectromagneticEmission {
             )
         };
 
+        // TODO return an EncodingConstraintExceeded error when:
+        //      - the lists exceed their maximum lengths (see constants.rs for max list lengths)
+        //      - the number of beams exceeds the maximum (see constants::MAX_NUMBER_OF_BEAMS)
+
         (
             Self {
                 full_update_flag,

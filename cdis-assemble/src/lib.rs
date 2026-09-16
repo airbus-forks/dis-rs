@@ -268,6 +268,8 @@ pub enum CdisError {
     InsufficientBufferSize(u16, usize), // the buffer for serialisation has insufficient capacity to hold the provided CDIS PDU; (u16 PDU size, usize available capacity)
     #[error("Encountered a C-DIS PDU of an unsupported type: {0}.")]
     UnsupportedPdu(u8), // encountered a CDIS PDU of an unsupported type; (u8 PduType found)
+    #[error("C-DIS encoding constraint exceeded: {0}")]
+    EncodingConstraintExceeded(String), // the encoding failed because the input DIS PDU exceeded constraints/limits defined by the C-DIS standard (e.g. more elements than can be fitted)
 }
 
 /// Trait that indicates whether a PDU is supported in the C-DIS standard
