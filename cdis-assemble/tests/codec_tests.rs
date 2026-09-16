@@ -9,7 +9,7 @@ use cdis_assemble::records::model::{
     LinearVelocity, Orientation, UnitsDekameters, WorldCoordinates,
 };
 use cdis_assemble::types::model::{SVINT16, SVINT24, UVINT8, UVINT16, UVINT32};
-use cdis_assemble::{BitBuffer, BodyProperties, CdisBody, CdisPdu, SerializeCdisPdu};
+use cdis_assemble::{BitBuffer, BodyProperties, CdisBody, CdisPdu, SerializeCdis};
 use dis_rs::BodyRaw;
 use dis_rs::designator::model::Designator;
 use dis_rs::electromagnetic_emission::model::{

@@ -1,9 +1,9 @@
+use crate::BodyProperties;
 use crate::constants::ONE_BIT;
 use crate::fire::model::Fire;
-use crate::writing::{SerializeCdis, serialize_when_present, write_value_unsigned};
-use crate::{BitBuffer, BodyProperties, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_value_unsigned};
 
-impl SerializeCdisPdu for Fire {
+impl SerializeCdis for Fire {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let fields_present = self.fields_present_field();
@@ -42,7 +42,7 @@ mod tests {
         EntityId, EntityType, LinearVelocity, UnitsDekameters, WorldCoordinates,
     };
     use crate::types::model::{SVINT16, SVINT24, UVINT8, UVINT16};
-    use crate::{BitBuffer, BodyProperties, SerializeCdisPdu};
+    use crate::{BitBuffer, BodyProperties, SerializeCdis};
     use bitvec::prelude::BitArray;
 
     #[test]

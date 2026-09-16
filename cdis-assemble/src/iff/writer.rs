@@ -1,3 +1,4 @@
+use crate::BodyProperties;
 use crate::constants::{
     EIGHT_BITS, FIVE_BITS, FOUR_BITS, ONE_BIT, SIX_BITS, SIXTEEN_BITS, TEN_BITS, THIRTY_TWO_BITS,
     THREE_BITS,
@@ -8,14 +9,13 @@ use crate::iff::model::{
 };
 use crate::records::model::CdisRecord;
 use crate::types::model::CdisFloat;
-use crate::writing::{SerializeCdis, serialize_when_present, write_value_unsigned};
-use crate::{BitBuffer, BodyProperties, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_value_unsigned};
 use dis_rs::iff::model::{
     IffDataRecord, Mode5MessageFormats, Mode5TransponderBasicData, ModeSInterrogatorBasicData,
     ModeSTransponderBasicData, SystemId,
 };
 
-impl SerializeCdisPdu for Iff {
+impl SerializeCdis for Iff {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let cursor = write_value_unsigned(

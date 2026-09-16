@@ -14,15 +14,11 @@ pub fn create_bit_buffer() -> BitBuffer {
     buf
 }
 
-pub trait SerializeCdisPdu {
-    fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize;
-}
-
 pub trait SerializeCdis {
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize;
 }
 
-impl SerializeCdisPdu for CdisPdu {
+impl SerializeCdis for CdisPdu {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let cursor = self.header.serialize(buf, cursor);
@@ -32,7 +28,7 @@ impl SerializeCdisPdu for CdisPdu {
     }
 }
 
-impl SerializeCdisPdu for CdisBody {
+impl SerializeCdis for CdisBody {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let cursor = match self {

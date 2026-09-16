@@ -72,7 +72,7 @@ use crate::transmitter::model::Transmitter;
 use crate::unsupported::Unsupported;
 pub use parsing::parse;
 pub use writing::BitBuffer;
-pub use writing::SerializeCdisPdu;
+pub use writing::SerializeCdis;
 pub use writing::create_bit_buffer;
 
 pub trait BodyProperties {
@@ -319,7 +319,7 @@ impl Implemented for PduType {
     /// - There is a model for the pdu body
     /// - `CdisBody` enum is adapted, including the trait implementation for `CdisInteraction` and method `body_length(..)`
     /// - There is a parser, and it is called in function `crate::parsing::cdis_body(..)`
-    /// - There is a serializer, and it is called in the `SerializeCdisPdu` trait impl for `CdisBody` in `crate::writing`.
+    /// - There is a serializer, and it is called in the `SerializeCdis` trait impl for `CdisBody` in `crate::writing`.
     /// - The codec implementations are present, and are called in `crate::codec` in the `CdisBody::encode` and `CdisBody::decode` implementations.
     fn is_implemented(&self) -> bool {
         matches!(

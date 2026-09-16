@@ -1,9 +1,9 @@
+use crate::BodyProperties;
 use crate::constants::{EIGHT_BITS, FOURTEEN_BITS};
 use crate::signal::model::Signal;
-use crate::writing::{SerializeCdis, serialize_when_present, write_value_unsigned};
-use crate::{BitBuffer, BodyProperties, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_value_unsigned};
 
-impl SerializeCdisPdu for Signal {
+impl SerializeCdis for Signal {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let fields_present = self.fields_present_field();

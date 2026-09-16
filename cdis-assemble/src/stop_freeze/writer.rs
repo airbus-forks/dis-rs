@@ -1,11 +1,10 @@
 use crate::constants::{FOUR_BITS, ONE_BIT};
 use crate::stop_freeze::model::StopFreeze;
 use crate::types::writer::serialize_clock_time;
-use crate::writing::{SerializeCdis, write_value_unsigned};
-use crate::{BitBuffer, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, write_value_unsigned};
 use dis_rs::enumerations::StopFreezeFrozenBehavior;
 
-impl SerializeCdisPdu for StopFreeze {
+impl SerializeCdis for StopFreeze {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let cursor = self.originating_id.serialize(buf, cursor);

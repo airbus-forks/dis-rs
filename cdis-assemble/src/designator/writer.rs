@@ -1,10 +1,10 @@
+use crate::BodyProperties;
 use crate::constants::{FOUR_BITS, ONE_BIT, SIXTEEN_BITS};
 use crate::designator::model::Designator;
-use crate::writing::{SerializeCdis, serialize_when_present, write_value_unsigned};
-use crate::{BitBuffer, BodyProperties, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_value_unsigned};
 use dis_rs::enumerations::DesignatorSystemName;
 
-impl SerializeCdisPdu for Designator {
+impl SerializeCdis for Designator {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let fields_present = self.fields_present_field();

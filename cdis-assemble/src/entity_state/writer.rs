@@ -2,11 +2,9 @@ use crate::BodyProperties;
 use crate::constants::{FOUR_BITS, HUNDRED_TWENTY_BITS, ONE_BIT, THIRTY_TWO_BITS};
 use crate::entity_state::model::{CdisEntityAppearance, CdisEntityCapabilities, EntityState};
 use crate::types::model::UVINT8;
-use crate::writing::{
-    BitBuffer, SerializeCdis, SerializeCdisPdu, serialize_when_present, write_value_unsigned,
-};
+use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_value_unsigned};
 
-impl SerializeCdisPdu for EntityState {
+impl SerializeCdis for EntityState {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let fields_present = self.fields_present_field();
@@ -70,7 +68,7 @@ mod tests {
         CdisEntityMarking, EntityId, LinearVelocity, Orientation, UnitsDekameters, WorldCoordinates,
     };
     use crate::types::model::{SVINT16, SVINT24, UVINT8, UVINT16, UVINT32};
-    use crate::{BitBuffer, BodyProperties, SerializeCdisPdu};
+    use crate::{BitBuffer, BodyProperties, SerializeCdis};
     use bitvec::prelude::BitArray;
     use dis_rs::enumerations::{
         Country, DeadReckoningAlgorithm, EntityKind, ForceId, PlatformDomain,

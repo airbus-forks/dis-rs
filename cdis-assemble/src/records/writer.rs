@@ -10,8 +10,7 @@ use crate::records::model::{
     LayerHeader, LinearAcceleration, LinearVelocity, Orientation, WorldCoordinates,
 };
 use crate::types::model::{CdisFloat, UVINT8};
-use crate::writing::BitBuffer;
-use crate::writing::{SerializeCdis, write_value_signed, write_value_unsigned};
+use crate::writing::{BitBuffer, SerializeCdis, write_value_signed, write_value_unsigned};
 use dis_rs::enumerations::VariableParameterRecordType;
 use dis_rs::model::{FixedDatum, VariableDatum};
 use num_traits::FromPrimitive;

@@ -1,10 +1,10 @@
+use crate::BodyProperties;
 use crate::constants::TWO_BITS;
 use crate::data::model::Data;
 use crate::types::model::UVINT8;
-use crate::writing::{SerializeCdis, write_value_unsigned};
-use crate::{BitBuffer, BodyProperties, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, write_value_unsigned};
 
-impl SerializeCdisPdu for Data {
+impl SerializeCdis for Data {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let cursor = write_value_unsigned(buf, cursor, TWO_BITS, self.fields_present_field());

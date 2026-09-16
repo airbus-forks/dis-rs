@@ -4,10 +4,9 @@ use crate::electromagnetic_emission::model::{
     TrackJam,
 };
 use crate::types::model::{CdisFloat, UVINT8};
-use crate::writing::{SerializeCdis, write_value_unsigned};
-use crate::{BitBuffer, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, write_value_unsigned};
 
-impl SerializeCdisPdu for ElectromagneticEmission {
+impl SerializeCdis for ElectromagneticEmission {
     #[allow(clippy::let_and_return)]
     #[allow(clippy::cast_possible_truncation)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {

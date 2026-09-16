@@ -205,7 +205,7 @@ mod tests {
         model::{CdisTimeUnits, CdisTimestamp},
         parser::entity_identification,
     };
-    use crate::{CdisPdu, SerializeCdisPdu, parse};
+    use crate::{CdisPdu, SerializeCdis, parse};
     use dis_rs::BodyRaw;
     use dis_rs::enumerations::{
         EntityKind, FireTypeIndicator, MunitionDescriptorFuse, MunitionDescriptorWarhead, PduType,

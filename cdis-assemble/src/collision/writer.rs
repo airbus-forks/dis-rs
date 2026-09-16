@@ -1,10 +1,9 @@
 use crate::collision::model::Collision;
 use crate::constants::ONE_BIT;
-use crate::writing::{SerializeCdis, write_value_unsigned};
-use crate::{BitBuffer, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, write_value_unsigned};
 use dis_rs::enumerations::CollisionType;
 
-impl SerializeCdisPdu for Collision {
+impl SerializeCdis for Collision {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let cursor = write_value_unsigned::<u8>(
@@ -41,7 +40,7 @@ mod tests {
         EntityCoordinateVector, EntityId, LinearVelocity, UnitsMass, UnitsMeters,
     };
     use crate::types::model::{SVINT16, UVINT16, UVINT32};
-    use crate::{BitBuffer, BodyProperties, SerializeCdisPdu};
+    use crate::{BitBuffer, BodyProperties, SerializeCdis};
     use bitvec::array::BitArray;
     use dis_rs::enumerations::CollisionType;
 

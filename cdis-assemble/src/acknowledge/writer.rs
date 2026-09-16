@@ -1,9 +1,8 @@
 use crate::acknowledge::model::Acknowledge;
 use crate::constants::{THREE_BITS, TWO_BITS};
-use crate::writing::{SerializeCdis, write_value_unsigned};
-use crate::{BitBuffer, SerializeCdisPdu};
+use crate::writing::{BitBuffer, SerializeCdis, write_value_unsigned};
 
-impl SerializeCdisPdu for Acknowledge {
+impl SerializeCdis for Acknowledge {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let cursor = self.originating_id.serialize(buf, cursor);
