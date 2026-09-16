@@ -1,11 +1,11 @@
 use crate::constants::{
-    EIGHT_BITS, FORTY_EIGHT_BITS, FOUR_BITS, SEVENTEEN_BITS, SIXTEEN_BITS, TWENTY_EIGHT_BITS,
-    TWENTY_FOUR_BITS, TWENTY_ONE_BITS,
+    EIGHT_BITS, FORTY_EIGHT_BITS, FOUR_BITS, SIXTEEN_BITS, TWENTY_EIGHT_BITS, TWENTY_FOUR_BITS,
+    TWENTY_ONE_BITS,
 };
 use crate::parsing::BitInput;
 use crate::records::model::{
-    BeamAntennaPattern, CdisRecord, EntityCoordinateVector, EntityId, EntityType, UnitsDekameters,
-    UnitsMeters, WorldCoordinates,
+    BeamAntennaPattern, CdisRecord, EntityCoordinateVector, EntityId, EntityType, FrequencyFloat,
+    UnitsDekameters, UnitsMeters, WorldCoordinates,
 };
 use crate::types::model::{CdisFloat, UVINT8, UVINT16, VarInt};
 use crate::writing::write_value_unsigned;
@@ -31,7 +31,7 @@ pub struct Transmitter {
     pub relative_antenna_location: Option<EntityCoordinateVector>,
     pub antenna_pattern_type: Option<TransmitterAntennaPatternType>,
     pub frequency: Option<TransmitterFrequencyFloat>,
-    pub transmit_frequency_bandwidth: Option<TransmitFrequencyBandwidthFloat>,
+    pub transmit_frequency_bandwidth: Option<FrequencyFloat>,
     pub power: Option<u8>,
     pub modulation_type: Option<ModulationType>,
     pub crypto_system: Option<TransmitterCryptoSystem>,
@@ -209,75 +209,38 @@ impl CdisFloat for TransmitterFrequencyFloat {
         Self { mantissa, exponent }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_precision_loss)]
+    #[allow(clippy::cast_sign_loss)]
     fn from_float(float: Self::InnerFloat) -> Self {
-        let mut mantissa = float;
-        let mut exponent = 0usize;
-        let max_mantissa = 2f64.powi(Self::MANTISSA_BITS as i32) - 1.0;
-        while (mantissa > max_mantissa) && (exponent <= Self::EXPONENT_BITS) {
-            mantissa /= 10.0;
-            exponent += 1;
+        let max_mantissa = ((1usize << Self::MANTISSA_BITS) - 1) as Self::Mantissa;
+        let max_exponent = ((1usize << Self::EXPONENT_BITS) - 1) as Self::Exponent;
+
+        let mut x = float.abs();
+        let mut exponent: Self::Exponent = 0;
+        let mut overflow = false;
+
+        while x.round() > Self::InnerFloat::from(max_mantissa) {
+            if exponent < max_exponent {
+                x /= 10.0;
+                exponent += 1;
+            } else {
+                overflow = true;
+                break;
+            }
         }
 
-        Self {
-            mantissa: mantissa as Self::Mantissa,
-            exponent: exponent as Self::Exponent,
-        }
-    }
+        let mantissa = if !overflow {
+            x.round() as Self::Mantissa
+        } else {
+            max_mantissa
+        };
 
-    fn to_float(&self) -> Self::InnerFloat {
-        f64::from(self.mantissa) * 10f64.powf(f64::from(self.exponent))
-    }
-
-    fn parse(input: BitInput) -> IResult<BitInput, Self> {
-        let (input, mantissa) = take(Self::MANTISSA_BITS)(input)?;
-        let (input, exponent) = take(Self::EXPONENT_BITS)(input)?;
-
-        Ok((input, Self { mantissa, exponent }))
-    }
-
-    #[allow(clippy::let_and_return)]
-    fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
-        let cursor = write_value_unsigned(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
-        let cursor = write_value_unsigned(buf, cursor, Self::EXPONENT_BITS, self.exponent);
-
-        cursor
-    }
-}
-
-#[derive(Copy, Clone, Default, Debug, PartialEq, Ord, PartialOrd, Eq)]
-pub struct TransmitFrequencyBandwidthFloat {
-    mantissa: u32,
-    exponent: u8,
-}
-
-impl CdisFloat for TransmitFrequencyBandwidthFloat {
-    type Mantissa = u32;
-    type Exponent = u8;
-    type InnerFloat = f32;
-    const MANTISSA_BITS: usize = SEVENTEEN_BITS;
-    const EXPONENT_BITS: usize = FOUR_BITS;
-
-    fn new(mantissa: Self::Mantissa, exponent: Self::Exponent) -> Self {
         Self { mantissa, exponent }
     }
 
-    fn from_float(float: Self::InnerFloat) -> Self {
-        let mut mantissa = float;
-        let mut exponent = 0usize;
-        let max_mantissa = 2f32.powi(Self::MANTISSA_BITS as i32) - 1.0;
-        while (mantissa > max_mantissa) && (exponent <= Self::EXPONENT_BITS) {
-            mantissa /= 10.0;
-            exponent += 1;
-        }
-
-        Self {
-            mantissa: mantissa as Self::Mantissa,
-            exponent: exponent as Self::Exponent,
-        }
-    }
-
     fn to_float(&self) -> Self::InnerFloat {
-        self.mantissa as f32 * 10f32.powf(f32::from(self.exponent))
+        Self::InnerFloat::from(self.mantissa) * 10f64.powi(i32::from(self.exponent))
     }
 
     fn parse(input: BitInput) -> IResult<BitInput, Self> {

@@ -858,7 +858,7 @@ impl CdisRecord for WorldCoordinates {
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct ParameterValueFloat {
-    mantissa: i32,
+    mantissa: i16,
     exponent: i8,
     uncompressed: Option<f32>,
 }
@@ -875,7 +875,7 @@ impl ParameterValueFloat {
 }
 
 impl CdisFloat for ParameterValueFloat {
-    type Mantissa = i32;
+    type Mantissa = i16;
     type Exponent = i8;
     type InnerFloat = f32;
     const MANTISSA_BITS: usize = FIFTEEN_BITS;
@@ -890,20 +890,58 @@ impl CdisFloat for ParameterValueFloat {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    #[allow(clippy::cast_possible_wrap)]
+    #[allow(clippy::cast_precision_loss)]
     #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::collapsible_else_if)]
     fn from_float(float: Self::InnerFloat) -> Self {
-        let mut mantissa = float;
-        let mut exponent = 0i32;
-        let max_mantissa = 2f32.powi(Self::MANTISSA_BITS as i32) - 1.0;
-        while (mantissa > max_mantissa) && (exponent as usize <= Self::EXPONENT_BITS) {
-            mantissa /= 10.0;
-            exponent += 1;
+        // the maximum positive value is 1 less than the absolute minimum negative value in 2's
+        // complement integer representation; therefore, it is safe to use as the symmetrical bounds
+        // for the mantissa range
+        let max_abs_mantissa = ((1isize << (Self::MANTISSA_BITS - 1)) - 1) as Self::Mantissa;
+        let min_exponent = -(1isize << (Self::EXPONENT_BITS - 1)) as Self::Exponent;
+        let max_exponent = ((1isize << (Self::EXPONENT_BITS - 1)) - 1) as Self::Exponent;
+
+        let mut x = float;
+        let mut exponent: Self::Exponent = 0;
+        let mut overflow = false;
+
+        // scale up to preserve as much precision as possible (use all mantissa digits if possible)
+        if x != 0.0 {
+            while ((x * 10.0).round().abs() <= Self::InnerFloat::from(max_abs_mantissa))
+                && (exponent > min_exponent)
+            {
+                x *= 10.0;
+                exponent -= 1;
+            }
+        }
+
+        // scale down to fit mantissa (with overflow check)
+        while x.round().abs() > Self::InnerFloat::from(max_abs_mantissa) {
+            if exponent < max_exponent {
+                x /= 10.0;
+                exponent += 1;
+            } else {
+                overflow = true;
+                break;
+            }
+        }
+
+        let mantissa = if !overflow {
+            x.round() as Self::Mantissa
+        } else {
+            if x.is_sign_positive() {
+                max_abs_mantissa
+            } else {
+                -max_abs_mantissa
+            }
+        };
+        if mantissa == 0 {
+            exponent = 0;
         }
 
         Self {
-            mantissa: mantissa as Self::Mantissa,
-            exponent: exponent as Self::Exponent,
+            mantissa,
+            exponent,
             uncompressed: None,
         }
     }
@@ -911,7 +949,7 @@ impl CdisFloat for ParameterValueFloat {
     #[allow(clippy::cast_possible_truncation)]
     #[allow(clippy::cast_precision_loss)]
     fn to_float(&self) -> Self::InnerFloat {
-        self.mantissa as f32 * 10f32.powf(f32::from(self.exponent))
+        Self::InnerFloat::from(self.mantissa) * 10f32.powi(i32::from(self.exponent))
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -1148,27 +1186,38 @@ impl CdisFloat for FrequencyFloat {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    #[allow(clippy::cast_possible_wrap)]
     #[allow(clippy::cast_precision_loss)]
     #[allow(clippy::cast_sign_loss)]
     fn from_float(float: Self::InnerFloat) -> Self {
-        let mut mantissa = float;
-        let mut exponent = 0usize;
-        let max_mantissa = 2f32.powi(Self::MANTISSA_BITS as i32) - 1.0;
-        while (mantissa > max_mantissa) && (exponent <= Self::EXPONENT_BITS) {
-            mantissa /= 10.0;
-            exponent += 1;
+        let max_mantissa = ((1usize << Self::MANTISSA_BITS) - 1) as Self::Mantissa;
+        let max_exponent = ((1usize << Self::EXPONENT_BITS) - 1) as Self::Exponent;
+
+        let mut x = float.abs();
+        let mut exponent: Self::Exponent = 0;
+        let mut overflow = false;
+
+        while x.round() > max_mantissa as Self::InnerFloat {
+            if exponent < max_exponent {
+                x /= 10.0;
+                exponent += 1;
+            } else {
+                overflow = true;
+                break;
+            }
         }
 
-        Self {
-            mantissa: mantissa as Self::Mantissa,
-            exponent: exponent as Self::Exponent,
-        }
+        let mantissa = if !overflow {
+            x.round() as Self::Mantissa
+        } else {
+            max_mantissa
+        };
+
+        Self { mantissa, exponent }
     }
 
     #[allow(clippy::cast_precision_loss)]
     fn to_float(&self) -> Self::InnerFloat {
-        self.mantissa as f32 * 10f32.powf(f32::from(self.exponent))
+        self.mantissa as Self::InnerFloat * 10f32.powi(i32::from(self.exponent))
     }
 
     fn parse(input: BitInput) -> IResult<BitInput, Self> {

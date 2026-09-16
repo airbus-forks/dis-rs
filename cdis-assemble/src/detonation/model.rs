@@ -184,23 +184,51 @@ impl CdisFloat for ExplosiveForceFloat {
         Self { mantissa, exponent }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_precision_loss)]
+    #[allow(clippy::cast_sign_loss)]
     fn from_float(float: Self::InnerFloat) -> Self {
-        let mut mantissa = float;
-        let mut exponent = 0usize;
-        let max_mantissa = 2f32.powi(Self::MANTISSA_BITS as i32) - 1.0;
-        while (mantissa > max_mantissa) && (exponent <= Self::EXPONENT_BITS) {
-            mantissa /= 10.0;
-            exponent += 1;
+        let max_mantissa = ((1usize << Self::MANTISSA_BITS) - 1) as Self::Mantissa;
+        let min_exponent = -(1isize << (Self::EXPONENT_BITS - 1)) as Self::Exponent;
+        let max_exponent = ((1isize << (Self::EXPONENT_BITS - 1)) - 1) as Self::Exponent;
+
+        let mut x = float.abs();
+        let mut exponent: Self::Exponent = 0;
+        let mut overflow = false;
+
+        if x != 0.0 {
+            while (x * 10.0).round() <= Self::InnerFloat::from(max_mantissa)
+                && exponent > min_exponent
+            {
+                x *= 10.0;
+                exponent -= 1;
+            }
         }
 
-        Self {
-            mantissa: mantissa as Self::Mantissa,
-            exponent: exponent as Self::Exponent,
+        while x.round() > Self::InnerFloat::from(max_mantissa) {
+            if exponent < max_exponent {
+                x /= 10.0;
+                exponent += 1;
+            } else {
+                overflow = true;
+                break;
+            }
         }
+
+        let mantissa = if !overflow {
+            x.round() as Self::Mantissa
+        } else {
+            max_mantissa
+        };
+        if mantissa == 0 {
+            exponent = 0;
+        }
+
+        Self { mantissa, exponent }
     }
 
     fn to_float(&self) -> Self::InnerFloat {
-        f32::from(self.mantissa) * 10f32.powf(f32::from(self.exponent))
+        Self::InnerFloat::from(self.mantissa) * 10f32.powi(i32::from(self.exponent))
     }
 
     fn parse(input: BitInput) -> IResult<BitInput, Self> {

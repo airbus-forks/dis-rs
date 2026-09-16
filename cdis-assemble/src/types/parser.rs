@@ -209,12 +209,12 @@ mod tests {
     }
 
     pub struct TestFloat {
-        mantissa: i32,
+        mantissa: i16,
         exponent: i8,
     }
 
     impl CdisFloat for TestFloat {
-        type Mantissa = i32;
+        type Mantissa = i16;
         type Exponent = i8;
         type InnerFloat = f32;
 
@@ -226,22 +226,51 @@ mod tests {
         }
 
         fn from_float(float: Self::InnerFloat) -> Self {
-            let mut mantissa = float;
-            let mut exponent = 0i32;
-            let max_mantissa = 2f32.powi(Self::MANTISSA_BITS as i32) - 1.0;
-            while (mantissa > max_mantissa) && (exponent as usize <= Self::EXPONENT_BITS) {
-                mantissa /= 10.0;
-                exponent += 1;
+            let max_abs_mantissa = ((1isize << (Self::MANTISSA_BITS - 1)) - 1) as Self::Mantissa;
+            let min_exponent = -(1isize << (Self::EXPONENT_BITS - 1)) as Self::Exponent;
+            let max_exponent = ((1isize << (Self::EXPONENT_BITS - 1)) - 1) as Self::Exponent;
+
+            let mut x = float;
+            let mut exponent: Self::Exponent = 0;
+            let mut overflow = false;
+
+            if x != 0.0 {
+                while ((x * 10.0).round().abs() <= Self::InnerFloat::from(max_abs_mantissa))
+                    && (exponent > min_exponent)
+                {
+                    x *= 10.0;
+                    exponent -= 1;
+                }
             }
 
-            Self {
-                mantissa: mantissa as Self::Mantissa,
-                exponent: exponent as Self::Exponent,
+            while x.round().abs() > Self::InnerFloat::from(max_abs_mantissa) {
+                if exponent < max_exponent {
+                    x /= 10.0;
+                    exponent += 1;
+                } else {
+                    overflow = true;
+                    break;
+                }
             }
+
+            let mantissa = if !overflow {
+                x.round() as Self::Mantissa
+            } else {
+                if x.is_sign_positive() {
+                    max_abs_mantissa
+                } else {
+                    -max_abs_mantissa
+                }
+            };
+            if mantissa == 0 {
+                exponent = 0;
+            }
+
+            Self { mantissa, exponent }
         }
 
         fn to_float(&self) -> Self::InnerFloat {
-            self.mantissa as f32 * 10f32.powf(f32::from(self.exponent))
+            Self::InnerFloat::from(self.mantissa) * 10f32.powi(i32::from(self.exponent))
         }
 
         fn parse(input: BitInput) -> IResult<BitInput, Self> {
@@ -282,7 +311,7 @@ mod tests {
         let float = 1_234_567_f32;
         let cdis_float = TestFloat::from_float(float);
 
-        assert_eq!(cdis_float.mantissa, 12345);
-        assert_eq!(cdis_float.exponent, 2);
+        assert_eq!(cdis_float.mantissa, 1235);
+        assert_eq!(cdis_float.exponent, 3);
     }
 }
