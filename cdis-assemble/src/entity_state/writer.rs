@@ -2,17 +2,16 @@ use crate::BodyProperties;
 use crate::constants::{FOUR_BITS, HUNDRED_TWENTY_BITS, ONE_BIT, THIRTY_TWO_BITS};
 use crate::entity_state::model::{CdisEntityAppearance, CdisEntityCapabilities, EntityState};
 use crate::types::model::UVINT8;
-use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_value_unsigned};
+use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_integer_bits};
 
 impl SerializeCdis for EntityState {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let fields_present = self.fields_present_field();
 
-        let cursor =
-            write_value_unsigned(buf, cursor, self.fields_present_length(), fields_present);
-        let cursor = write_value_unsigned::<u8>(buf, cursor, ONE_BIT, self.units.into());
-        let cursor = write_value_unsigned::<u8>(buf, cursor, ONE_BIT, self.full_update_flag.into());
+        let cursor = write_integer_bits(buf, cursor, self.fields_present_length(), fields_present);
+        let cursor = write_integer_bits(buf, cursor, ONE_BIT, u8::from(self.units));
+        let cursor = write_integer_bits(buf, cursor, ONE_BIT, u8::from(self.full_update_flag));
         let cursor = self.entity_id.serialize(buf, cursor);
         let cursor = serialize_when_present(&self.force_id, buf, cursor);
         let cursor = if !self.variable_parameters.is_empty() {
@@ -27,9 +26,9 @@ impl SerializeCdis for EntityState {
         let cursor = serialize_when_present(&self.entity_orientation, buf, cursor);
         let cursor = serialize_when_present(&self.entity_appearance, buf, cursor);
 
-        let cursor = write_value_unsigned::<u8>(buf, cursor, FOUR_BITS, self.dr_algorithm.into());
+        let cursor = write_integer_bits(buf, cursor, FOUR_BITS, u8::from(self.dr_algorithm));
         let cursor = if let Some(other) = &self.dr_params_other {
-            write_value_unsigned(buf, cursor, HUNDRED_TWENTY_BITS, other.0)
+            write_integer_bits(buf, cursor, HUNDRED_TWENTY_BITS, other.0)
         } else {
             cursor
         };
@@ -51,7 +50,7 @@ impl SerializeCdis for EntityState {
 
 impl SerializeCdis for CdisEntityAppearance {
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
-        write_value_unsigned(buf, cursor, THIRTY_TWO_BITS, self.0)
+        write_integer_bits(buf, cursor, THIRTY_TWO_BITS, self.0)
     }
 }
 

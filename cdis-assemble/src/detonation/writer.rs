@@ -2,26 +2,25 @@ use crate::BodyProperties;
 use crate::constants::{EIGHT_BITS, ONE_BIT};
 use crate::detonation::model::Detonation;
 use crate::types::model::CdisFloat;
-use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_value_unsigned};
+use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_integer_bits};
 
 impl SerializeCdis for Detonation {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let fields_present = self.fields_present_field();
 
-        let cursor =
-            write_value_unsigned(buf, cursor, self.fields_present_length(), fields_present);
-        let cursor = write_value_unsigned::<u8>(
+        let cursor = write_integer_bits(buf, cursor, self.fields_present_length(), fields_present);
+        let cursor = write_integer_bits(
             buf,
             cursor,
             ONE_BIT,
-            self.units.world_location_altitude.into(),
+            u8::from(self.units.world_location_altitude),
         );
-        let cursor = write_value_unsigned::<u8>(
+        let cursor = write_integer_bits(
             buf,
             cursor,
             ONE_BIT,
-            self.units.location_entity_coordinates.into(),
+            u8::from(self.units.location_entity_coordinates),
         );
 
         let cursor = self.source_entity_id.serialize(buf, cursor);
@@ -50,12 +49,7 @@ impl SerializeCdis for Detonation {
         let cursor = self.detonation_results.serialize(buf, cursor);
 
         let cursor = if !self.variable_parameters.is_empty() {
-            write_value_unsigned::<u8>(
-                buf,
-                cursor,
-                EIGHT_BITS,
-                self.variable_parameters.len() as u8,
-            )
+            write_integer_bits(buf, cursor, EIGHT_BITS, self.variable_parameters.len())
         } else {
             cursor
         };

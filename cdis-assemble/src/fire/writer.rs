@@ -1,17 +1,15 @@
 use crate::BodyProperties;
 use crate::constants::ONE_BIT;
 use crate::fire::model::Fire;
-use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_value_unsigned};
+use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_integer_bits};
 
 impl SerializeCdis for Fire {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let fields_present = self.fields_present_field();
 
-        let cursor =
-            write_value_unsigned(buf, cursor, self.fields_present_length(), fields_present);
-        let cursor = write_value_unsigned::<u8>(buf, cursor, ONE_BIT, self.units.into());
-
+        let cursor = write_integer_bits(buf, cursor, self.fields_present_length(), fields_present);
+        let cursor = write_integer_bits(buf, cursor, ONE_BIT, u8::from(self.units));
         let cursor = self.firing_entity_id.serialize(buf, cursor);
         let cursor = self.target_entity_id.serialize(buf, cursor);
         let cursor = self.munition_expandable_entity_id.serialize(buf, cursor);

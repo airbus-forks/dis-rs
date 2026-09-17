@@ -9,7 +9,7 @@ use crate::records::model::CdisProtocolVersion::{Reserved, SISO_023_2023, Standa
 use crate::types::model::{
     CdisFloat, SVINT12, SVINT13, SVINT14, SVINT16, SVINT24, UVINT8, UVINT16, VarInt,
 };
-use crate::writing::{write_value_signed, write_value_unsigned};
+use crate::writing::write_integer_bits;
 use dis_rs::enumerations::{
     ArticulatedPartsTypeClass, ArticulatedPartsTypeMetric, AttachedPartDetachedIndicator,
     AttachedParts, ChangeIndicator, EntityAssociationAssociationStatus,
@@ -955,21 +955,19 @@ impl CdisFloat for ParameterValueFloat {
     #[allow(clippy::cast_possible_truncation)]
     fn parse(input: BitInput) -> IResult<BitInput, Self> {
         let (input, mantissa) = take_signed(Self::MANTISSA_BITS)(input)?;
-        let (input, exponent) = take_signed(Self::EXPONENT_BITS)(input)?;
-        let mantissa = mantissa as Self::Mantissa;
-        let exponent = exponent as Self::Exponent;
+        let (input, exponent) = take_signed::<i16>(Self::EXPONENT_BITS)(input)?;
 
-        Ok((input, Self::new(mantissa, exponent)))
+        Ok((input, Self::new(mantissa, exponent as Self::Exponent)))
     }
 
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         if let Some(float) = self.uncompressed {
-            let cursor = write_value_unsigned(buf, cursor, THIRTY_TWO_BITS, float.to_bits());
+            let cursor = write_integer_bits(buf, cursor, THIRTY_TWO_BITS, float.to_bits());
             cursor
         } else {
-            let cursor = write_value_signed(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
-            let cursor = write_value_signed(buf, cursor, Self::EXPONENT_BITS, self.exponent);
+            let cursor = write_integer_bits(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
+            let cursor = write_integer_bits(buf, cursor, Self::EXPONENT_BITS, self.exponent);
             cursor
         }
     }
@@ -1229,8 +1227,8 @@ impl CdisFloat for FrequencyFloat {
 
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
-        let cursor = write_value_unsigned(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
-        let cursor = write_value_unsigned(buf, cursor, Self::EXPONENT_BITS, self.exponent);
+        let cursor = write_integer_bits(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
+        let cursor = write_integer_bits(buf, cursor, Self::EXPONENT_BITS, self.exponent);
 
         cursor
     }

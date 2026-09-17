@@ -4,7 +4,7 @@ use crate::records::model::{
     BeamData, CdisRecord, EntityCoordinateVector, EntityId, FrequencyFloat,
 };
 use crate::types::model::{CdisFloat, UVINT8, UVINT16, VarInt};
-use crate::writing::{write_value_signed, write_value_unsigned};
+use crate::writing::write_integer_bits;
 use crate::{BitBuffer, BodyProperties, CdisBody, CdisInteraction};
 use dis_rs::enumerations::{
     ElectromagneticEmissionBeamFunction, ElectromagneticEmissionStateUpdateIndicator, EmitterName,
@@ -275,16 +275,15 @@ impl CdisFloat for PulseWidthFloat {
 
     fn parse(input: BitInput) -> IResult<BitInput, Self> {
         let (input, mantissa) = take(Self::MANTISSA_BITS)(input)?;
-        let (input, exponent) = take_signed(Self::EXPONENT_BITS)(input)?;
+        let (input, exponent) = take_signed::<i16>(Self::EXPONENT_BITS)(input)?;
 
-        let exponent = exponent as Self::Exponent;
-        Ok((input, Self { mantissa, exponent }))
+        Ok((input, Self::new(mantissa, exponent as Self::Exponent)))
     }
 
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
-        let cursor = write_value_unsigned(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
-        let cursor = write_value_signed(buf, cursor, Self::EXPONENT_BITS, self.exponent);
+        let cursor = write_integer_bits(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
+        let cursor = write_integer_bits(buf, cursor, Self::EXPONENT_BITS, self.exponent);
 
         cursor
     }

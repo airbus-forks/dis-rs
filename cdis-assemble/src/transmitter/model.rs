@@ -8,7 +8,7 @@ use crate::records::model::{
     UnitsDekameters, UnitsMeters, WorldCoordinates,
 };
 use crate::types::model::{CdisFloat, UVINT8, UVINT16, VarInt};
-use crate::writing::write_value_unsigned;
+use crate::writing::write_integer_bits;
 use crate::{BitBuffer, BodyProperties, CdisBody, CdisInteraction};
 use dis_rs::enumerations::{
     TransmitterAntennaPatternType, TransmitterCryptoSystem, TransmitterMajorModulation,
@@ -252,8 +252,8 @@ impl CdisFloat for TransmitterFrequencyFloat {
 
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
-        let cursor = write_value_unsigned(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
-        let cursor = write_value_unsigned(buf, cursor, Self::EXPONENT_BITS, self.exponent);
+        let cursor = write_integer_bits(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
+        let cursor = write_integer_bits(buf, cursor, Self::EXPONENT_BITS, self.exponent);
 
         cursor
     }

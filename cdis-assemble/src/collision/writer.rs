@@ -1,18 +1,18 @@
 use crate::collision::model::Collision;
 use crate::constants::ONE_BIT;
-use crate::writing::{BitBuffer, SerializeCdis, write_value_unsigned};
+use crate::writing::{BitBuffer, SerializeCdis, write_integer_bits};
 use dis_rs::enumerations::CollisionType;
 
 impl SerializeCdis for Collision {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
-        let cursor = write_value_unsigned::<u8>(
+        let cursor = write_integer_bits(
             buf,
             cursor,
             ONE_BIT,
-            self.units.location_entity_coordinates.into(),
+            u8::from(self.units.location_entity_coordinates),
         );
-        let cursor = write_value_unsigned::<u8>(buf, cursor, ONE_BIT, self.units.mass.into());
+        let cursor = write_integer_bits(buf, cursor, ONE_BIT, u8::from(self.units.mass));
 
         let cursor = self.issuing_entity_id.serialize(buf, cursor);
         let cursor = self.colliding_entity_id.serialize(buf, cursor);
@@ -23,7 +23,7 @@ impl SerializeCdis for Collision {
             CollisionType::Elastic => 1,
             _ => 0,
         };
-        let cursor = write_value_unsigned::<u8>(buf, cursor, ONE_BIT, collision_type);
+        let cursor = write_integer_bits(buf, cursor, ONE_BIT, collision_type);
 
         let cursor = self.velocity.serialize(buf, cursor);
         let cursor = self.mass.serialize(buf, cursor);

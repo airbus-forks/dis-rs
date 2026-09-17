@@ -109,7 +109,7 @@ mod tests {
         Uvint16BitSize, Uvint32BitSize,
     };
     use crate::types::parser::{svint12, uvint8, uvint16, uvint32};
-    use crate::writing::write_value_signed;
+    use crate::writing::write_integer_bits;
     use nom::IResult;
 
     #[test]
@@ -275,21 +275,15 @@ mod tests {
 
         fn parse(input: BitInput) -> IResult<BitInput, Self> {
             let (input, mantissa) = take_signed(Self::MANTISSA_BITS)(input)?;
-            let (input, exponent) = take_signed(Self::EXPONENT_BITS)(input)?;
+            let (input, exponent) = take_signed::<i16>(Self::EXPONENT_BITS)(input)?;
 
-            Ok((
-                input,
-                Self {
-                    mantissa: mantissa as Self::Mantissa,
-                    exponent: exponent as Self::Exponent,
-                },
-            ))
+            Ok((input, Self::new(mantissa, exponent as Self::Exponent)))
         }
 
         #[allow(clippy::let_and_return)]
         fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
-            let cursor = write_value_signed(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
-            let cursor = write_value_signed(buf, cursor, Self::EXPONENT_BITS, self.exponent);
+            let cursor = write_integer_bits(buf, cursor, Self::MANTISSA_BITS, self.mantissa);
+            let cursor = write_integer_bits(buf, cursor, Self::EXPONENT_BITS, self.exponent);
 
             cursor
         }
