@@ -343,9 +343,9 @@ impl SerializeCdis for BeamData {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let cursor = self.az_center.serialize(buf, cursor);
-        let cursor = self.az_center.serialize(buf, cursor);
-        let cursor = self.az_center.serialize(buf, cursor);
-        let cursor = self.az_center.serialize(buf, cursor);
+        let cursor = self.az_sweep.serialize(buf, cursor);
+        let cursor = self.el_center.serialize(buf, cursor);
+        let cursor = self.el_sweep.serialize(buf, cursor);
         let cursor = write_integer_bits(buf, cursor, TEN_BITS, self.sweep_sync);
 
         cursor
