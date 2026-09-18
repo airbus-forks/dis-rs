@@ -1,4 +1,4 @@
-use crate::constants::{EIGHT_BITS, SIXTEEN_BITS};
+use crate::constants::{EIGHT_BITS, FOUR_BITS, SIXTEEN_BITS};
 use crate::records::model::{
     CdisRecord, EntityId, EntityType, LinearVelocity, UnitsDekameters, WorldCoordinates,
 };
@@ -26,18 +26,18 @@ pub struct Fire {
 impl BodyProperties for Fire {
     type FieldsPresent = FireFieldsPresent;
     type FieldsPresentOutput = u8;
-    const FIELDS_PRESENT_LENGTH: usize = 4;
+    const FIELDS_PRESENT_LENGTH: usize = FOUR_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentOutput {
         (if self.fire_mission_index.is_some() {
             Self::FieldsPresent::FIRE_MISSION_INDEX_BIT
         } else {
             0
-        }) | (if self.descriptor_warhead.is_some() && self.descriptor_fuze.is_some() {
+        }) | (if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
             Self::FieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT
         } else {
             0
-        }) | (if self.descriptor_quantity.is_some() && self.descriptor_rate.is_some() {
+        }) | (if self.descriptor_quantity.is_some() || self.descriptor_rate.is_some() {
             Self::FieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT
         } else {
             0

@@ -84,18 +84,26 @@ fn encode_fire_descriptor(
 ) -> (EntityType, Option<u16>, Option<u16>, Option<u8>, Option<u8>) {
     match item {
         FireDescriptor::Munition(munition) => {
-            let warhead = Some(munition.warhead.into());
-            let fuze = Some(munition.fuse.into());
-            let quantity = if munition.quantity.is_zero() {
-                None
+            let warhead = u16::from(munition.warhead);
+            let warhead = if !warhead.is_zero() {
+                Some(warhead)
             } else {
-                Some(munition.quantity.min(u16::from(u8::MAX)) as u8)
-            };
-            let rate = if munition.rate.is_zero() {
                 None
-            } else {
-                Some(munition.rate.min(u16::from(u8::MAX)) as u8)
             };
+
+            let fuze = u16::from(munition.fuse);
+            let fuze = if !fuze.is_zero() { Some(fuze) } else { None };
+
+            let quantity = munition.quantity.min(u16::from(u8::MAX)) as u8;
+            let quantity = if !quantity.is_zero() {
+                Some(quantity)
+            } else {
+                None
+            };
+
+            let rate = munition.rate.min(u16::from(u8::MAX)) as u8;
+            let rate = if !rate.is_zero() { Some(rate) } else { None };
+
             (
                 EntityType::encode(&munition.entity_type),
                 warhead,

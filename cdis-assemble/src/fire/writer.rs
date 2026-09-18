@@ -14,19 +14,47 @@ impl SerializeCdis for Fire {
         let cursor = self.target_entity_id.serialize(buf, cursor);
         let cursor = self.munition_expandable_entity_id.serialize(buf, cursor);
         let cursor = self.event_id.serialize(buf, cursor);
-
         let cursor = serialize_when_present(&self.fire_mission_index, buf, cursor);
         let cursor = self.location_world_coordinates.serialize(buf, cursor);
         let cursor = self.descriptor_entity_type.serialize(buf, cursor);
 
-        let cursor = serialize_when_present(&self.descriptor_warhead, buf, cursor);
-        let cursor = serialize_when_present(&self.descriptor_fuze, buf, cursor);
+        // Descriptor::Warhead and Descriptor::Fuze share the same FieldPresentFlag, and it is
+        // sufficient for only one of them to be non-zero to raise the flag
+        let cursor = if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
+            let cursor = if let Some(warhead) = self.descriptor_warhead {
+                warhead.serialize(buf, cursor)
+            } else {
+                0u16.serialize(buf, cursor)
+            };
+            let cursor = if let Some(fuze) = self.descriptor_fuze {
+                fuze.serialize(buf, cursor)
+            } else {
+                0u16.serialize(buf, cursor)
+            };
+            cursor
+        } else {
+            cursor
+        };
 
-        let cursor = serialize_when_present(&self.descriptor_quantity, buf, cursor);
-        let cursor = serialize_when_present(&self.descriptor_rate, buf, cursor);
+        // Descriptor::Quantity and Descriptor::Rate share the same FieldPresentFlag, and it is
+        // sufficient for only one of them to be non-zero to raise the flag
+        let cursor = if self.descriptor_quantity.is_some() || self.descriptor_rate.is_some() {
+            let cursor = if let Some(quantity) = self.descriptor_quantity {
+                quantity.serialize(buf, cursor)
+            } else {
+                0u8.serialize(buf, cursor)
+            };
+            let cursor = if let Some(rate) = self.descriptor_rate {
+                rate.serialize(buf, cursor)
+            } else {
+                0u8.serialize(buf, cursor)
+            };
+            cursor
+        } else {
+            cursor
+        };
 
         let cursor = self.velocity.serialize(buf, cursor);
-
         let cursor = serialize_when_present(&self.range, buf, cursor);
 
         cursor

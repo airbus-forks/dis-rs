@@ -1,12 +1,12 @@
 use crate::constants::{EIGHT_BITS, FOUR_BITS, ONE_BIT, SIXTEEN_BITS};
 use crate::fire::model::{Fire, FireFieldsPresent};
-use crate::parsing::BitInput;
+use crate::parsing::{BitInput, parse_field_when_present};
 use crate::records::model::UnitsDekameters;
 use crate::records::parser::{
     entity_identification, entity_type, linear_velocity, world_coordinates,
 };
 use crate::types::parser::uvint32;
-use crate::{BodyProperties, CdisBody, parsing};
+use crate::{BodyProperties, CdisBody};
 use nom::IResult;
 use nom::bits::complete::take;
 
@@ -21,7 +21,7 @@ pub(crate) fn fire_body(input: BitInput) -> IResult<BitInput, CdisBody> {
     let (input, munition_expandable_entity_id) = entity_identification(input)?;
     let (input, event_id) = entity_identification(input)?;
 
-    let (input, fire_mission_index) = parsing::parse_field_when_present(
+    let (input, fire_mission_index) = parse_field_when_present(
         fields_present,
         FireFieldsPresent::FIRE_MISSION_INDEX_BIT,
         uvint32,
@@ -29,22 +29,22 @@ pub(crate) fn fire_body(input: BitInput) -> IResult<BitInput, CdisBody> {
 
     let (input, location_world_coordinates) = world_coordinates(input)?;
     let (input, descriptor_entity_type) = entity_type(input)?;
-    let (input, descriptor_warhead) = parsing::parse_field_when_present(
+    let (input, descriptor_warhead) = parse_field_when_present(
         fields_present,
         FireFieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT,
         take(SIXTEEN_BITS),
     )(input)?;
-    let (input, descriptor_fuze) = parsing::parse_field_when_present(
+    let (input, descriptor_fuze) = parse_field_when_present(
         fields_present,
         FireFieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT,
         take(SIXTEEN_BITS),
     )(input)?;
-    let (input, descriptor_quantity) = parsing::parse_field_when_present(
+    let (input, descriptor_quantity) = parse_field_when_present(
         fields_present,
         FireFieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT,
         take(EIGHT_BITS),
     )(input)?;
-    let (input, descriptor_rate) = parsing::parse_field_when_present(
+    let (input, descriptor_rate) = parse_field_when_present(
         fields_present,
         FireFieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT,
         take(EIGHT_BITS),
@@ -53,9 +53,7 @@ pub(crate) fn fire_body(input: BitInput) -> IResult<BitInput, CdisBody> {
     let (input, velocity) = linear_velocity(input)?;
 
     let (input, range) =
-        parsing::parse_field_when_present(fields_present, FireFieldsPresent::RANGE_BIT, uvint32)(
-            input,
-        )?;
+        parse_field_when_present(fields_present, FireFieldsPresent::RANGE_BIT, uvint32)(input)?;
 
     Ok((
         input,
