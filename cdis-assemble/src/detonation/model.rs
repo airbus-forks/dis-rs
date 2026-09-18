@@ -1,4 +1,4 @@
-use crate::constants::{EIGHT_BITS, FIFTEEN_BITS, FOUR_BITS, SIXTEEN_BITS, THREE_BITS, TWO_BITS};
+use crate::constants::{EIGHT_BITS, FIFTEEN_BITS, SIXTEEN_BITS, THREE_BITS, TWO_BITS};
 use crate::parsing::{BitInput, take_signed};
 use crate::records::model::{
     CdisRecord, CdisVariableParameter, EntityCoordinateVector, EntityId, EntityType,
@@ -34,21 +34,22 @@ pub struct Detonation {
 impl BodyProperties for Detonation {
     type FieldsPresent = DetonationFieldsPresent;
     type FieldsPresentOutput = u8;
-    const FIELDS_PRESENT_LENGTH: usize = FOUR_BITS;
+    const FIELDS_PRESENT_LENGTH: usize = THREE_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentOutput {
-        (if self.descriptor_warhead.is_some() && self.descriptor_fuze.is_some() {
+        (if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
             Self::FieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT
         } else {
             0
-        }) | (if self.descriptor_quantity.is_some() && self.descriptor_rate.is_some() {
+        }) | (if self.descriptor_quantity.is_some() || self.descriptor_rate.is_some() {
             Self::FieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT
         } else {
             0
         }) | (if self.descriptor_explosive_material.is_some()
             && self.descriptor_explosive_force.is_some()
         {
-            Self::FieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT
+            // TODO SISO-STD-023-2023: [13.4] does not include a DESCRIPTOR_EXPLOSIVE_BIT
+            0 // Self::FieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT
         } else {
             0
         }) | (if !self.variable_parameters.is_empty() {
@@ -131,9 +132,10 @@ impl CdisInteraction for Detonation {
 pub struct DetonationFieldsPresent;
 
 impl DetonationFieldsPresent {
-    pub const DESCRIPTOR_WARHEAD_FUZE_BIT: u8 = 0x08;
-    pub const DESCRIPTOR_QUANTITY_RATE_BIT: u8 = 0x04;
-    pub const DESCRIPTOR_EXPLOSIVE_BIT: u8 = 0x02;
+    // TODO SISO-STD-023-2023: [13.4] does not include a DESCRIPTOR_EXPLOSIVE_BIT
+    pub const DESCRIPTOR_WARHEAD_FUZE_BIT: u8 = 0x04; // 0x08
+    pub const DESCRIPTOR_QUANTITY_RATE_BIT: u8 = 0x02; // 0x04
+    // pub const DESCRIPTOR_EXPLOSIVE_BIT: u8 = 0x02;
     pub const VARIABLE_PARAMETERS_BIT: u8 = 0x01;
 }
 

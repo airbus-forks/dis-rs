@@ -21,12 +21,15 @@ impl Detonation {
     pub fn encode(item: &Counterpart) -> Self {
         let (location_in_world_coordinates, units_world) =
             encode_world_coordinates(&item.location_in_world_coordinates);
+
         let (location_in_entity_coordinates, units_entity) =
             encode_entity_coordinate_vector(&item.location_in_entity_coordinates);
+
         let units = DetonationUnits {
             world_location_altitude: units_world,
             location_entity_coordinates: units_entity,
         };
+
         let (
             descriptor_entity_type,
             descriptor_warhead,
@@ -36,7 +39,7 @@ impl Detonation {
             descriptor_explosive_material,
             descriptor_explosive_force,
         ) = encode_detonation_descriptor(&item.descriptor);
-        let detonation_result: u8 = item.detonation_result.into();
+
         let variable_parameters = item
             .variable_parameters
             .iter()
@@ -59,7 +62,7 @@ impl Detonation {
             descriptor_explosive_material,
             descriptor_explosive_force,
             location_in_entity_coordinates,
-            detonation_results: UVINT8::from(detonation_result),
+            detonation_results: UVINT8::from(u8::from(item.detonation_result)),
             variable_parameters,
         }
     }
@@ -109,18 +112,26 @@ fn encode_detonation_descriptor(
 ) {
     match item {
         DetonationDescriptor::Munition(munition) => {
-            let warhead = Some(munition.warhead.into());
-            let fuze = Some(munition.fuse.into());
-            let quantity = if munition.quantity.is_zero() {
-                None
+            let warhead = u16::from(munition.warhead);
+            let warhead = if !warhead.is_zero() {
+                Some(warhead)
             } else {
-                Some(munition.quantity.min(u16::from(u8::MAX)) as u8)
-            };
-            let rate = if munition.rate.is_zero() {
                 None
-            } else {
-                Some(munition.rate.min(u16::from(u8::MAX)) as u8)
             };
+
+            let fuze = u16::from(munition.fuse);
+            let fuze = if !fuze.is_zero() { Some(fuze) } else { None };
+
+            let quantity = munition.quantity.min(u16::from(u8::MAX)) as u8;
+            let quantity = if !quantity.is_zero() {
+                Some(quantity)
+            } else {
+                None
+            };
+
+            let rate = munition.rate.min(u16::from(u8::MAX)) as u8;
+            let rate = if !rate.is_zero() { Some(rate) } else { None };
+
             (
                 EntityType::encode(&munition.entity_type),
                 warhead,
@@ -140,19 +151,21 @@ fn encode_detonation_descriptor(
             None,
             None,
         ),
-        DetonationDescriptor::Explosion(explosion) => {
-            let explosive_material: u16 = explosion.explosive_material.into();
-            let explosive_material = UVINT16::from(explosive_material);
-            (
-                EntityType::encode(&explosion.entity_type),
-                None,
-                None,
-                None,
-                None,
-                Some(explosive_material),
-                Some(ExplosiveForceFloat::from_float(explosion.explosive_force)),
-            )
-        }
+        // TODO SISO-STD-023-2023: [13.4] & [11.21] do not describe an encoding for the Explosion
+        //      Descriptor record. Only the Munition Descriptor record is covered by the standard
+        //      (the Expendable Descriptor record is also implicitly covered as a subset of the
+        //      Munition Descriptor). The document is ambiguous, but seems to suggest that the
+        //      Explosion Descriptor should be encoded as a Munition Descriptor with
+        //      Warhead/Fuze/Quantity/Rate all zero.
+        DetonationDescriptor::Explosion(explosion) => (
+            EntityType::encode(&explosion.entity_type),
+            None,
+            None,
+            None,
+            None,
+            Some(UVINT16::from(u16::from(explosion.explosive_material))),
+            Some(ExplosiveForceFloat::from_float(explosion.explosive_force)),
+        ),
     }
 }
 
@@ -181,6 +194,7 @@ fn decode_detonation_descriptor(
         EntityKind::Expendable => {
             DetonationDescriptor::Expendable(ExpendableDescriptor { entity_type })
         }
+
         _ => {
             let explosive_material = detonation_body
                 .descriptor_explosive_material

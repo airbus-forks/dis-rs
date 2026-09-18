@@ -1,21 +1,18 @@
-use crate::constants::{EIGHT_BITS, FOUR_BITS, SIXTEEN_BITS, TWO_BITS};
-use crate::detonation::model::{
-    Detonation, DetonationFieldsPresent, DetonationUnits, ExplosiveForceFloat,
-};
-use crate::parsing::BitInput;
+use crate::constants::{EIGHT_BITS, SIXTEEN_BITS, THREE_BITS, TWO_BITS};
+use crate::detonation::model::{Detonation, DetonationFieldsPresent, DetonationUnits};
+use crate::parsing::{BitInput, parse_field_when_present};
 use crate::records::parser::{
     entity_coordinate_vector, entity_identification, entity_type, linear_velocity,
     variable_parameter, world_coordinates,
 };
-use crate::types::model::CdisFloat;
-use crate::types::parser::{uvint8, uvint16};
-use crate::{BodyProperties, CdisBody, parsing};
+use crate::types::parser::uvint8;
+use crate::{BodyProperties, CdisBody};
 use nom::bits::complete::take;
 use nom::multi::count;
 use nom::{IResult, Parser};
 
 pub(crate) fn detonation_body(input: BitInput) -> IResult<BitInput, CdisBody> {
-    let (input, fields_present): (BitInput, u8) = take(FOUR_BITS)(input)?;
+    let (input, fields_present): (BitInput, u8) = take(THREE_BITS)(input)?;
     let (input, units): (BitInput, u8) = take(TWO_BITS)(input)?;
     let units = DetonationUnits::from(units);
 
@@ -28,41 +25,45 @@ pub(crate) fn detonation_body(input: BitInput) -> IResult<BitInput, CdisBody> {
     let (input, location_in_world_coordinates) = world_coordinates(input)?;
 
     let (input, descriptor_entity_type) = entity_type(input)?;
-    let (input, descriptor_warhead) = parsing::parse_field_when_present(
+    let (input, descriptor_warhead) = parse_field_when_present(
         fields_present,
         DetonationFieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT,
         take(SIXTEEN_BITS),
     )(input)?;
-    let (input, descriptor_fuze) = parsing::parse_field_when_present(
+    let (input, descriptor_fuze) = parse_field_when_present(
         fields_present,
         DetonationFieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT,
         take(SIXTEEN_BITS),
     )(input)?;
-    let (input, descriptor_quantity) = parsing::parse_field_when_present(
+    let (input, descriptor_quantity) = parse_field_when_present(
         fields_present,
         DetonationFieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT,
         take(EIGHT_BITS),
     )(input)?;
-    let (input, descriptor_rate) = parsing::parse_field_when_present(
+    let (input, descriptor_rate) = parse_field_when_present(
         fields_present,
         DetonationFieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT,
         take(EIGHT_BITS),
     )(input)?;
-    let (input, descriptor_explosive_material) = parsing::parse_field_when_present(
-        fields_present,
-        DetonationFieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT,
-        uvint16,
-    )(input)?;
-    let (input, descriptor_explosive_force) = parsing::parse_field_when_present(
-        fields_present,
-        DetonationFieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT,
-        ExplosiveForceFloat::parse,
-    )(input)?;
+
+    // Note: See `DetonationFieldsPresent` for the reason why the following code is disabled
+    // ---------------------------------------------------------------------------------------------
+    // let (input, descriptor_explosive_material) = parse_field_when_present(
+    //     fields_present,
+    //     DetonationFieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT,
+    //     uvint16,
+    // )(input)?;
+    // let (input, descriptor_explosive_force) = parse_field_when_present(
+    //     fields_present,
+    //     DetonationFieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT,
+    //     ExplosiveForceFloat::parse,
+    // )(input)?;
+    // ---------------------------------------------------------------------------------------------
 
     let (input, location_in_entity_coordinates) = entity_coordinate_vector(input)?;
     let (input, detonation_results) = uvint8(input)?;
 
-    let (input, number_of_var_params) = parsing::parse_field_when_present(
+    let (input, number_of_var_params) = parse_field_when_present(
         fields_present,
         DetonationFieldsPresent::VARIABLE_PARAMETERS_BIT,
         take(EIGHT_BITS),
@@ -89,8 +90,8 @@ pub(crate) fn detonation_body(input: BitInput) -> IResult<BitInput, CdisBody> {
             descriptor_fuze,
             descriptor_quantity,
             descriptor_rate,
-            descriptor_explosive_material,
-            descriptor_explosive_force,
+            descriptor_explosive_material: None,
+            descriptor_explosive_force: None,
             location_in_entity_coordinates,
             detonation_results,
             variable_parameters,
@@ -112,58 +113,57 @@ mod tests {
     #[test]
     #[allow(clippy::too_many_lines)]
     fn parse_detonation_no_fields_present() {
-        // TODO added explosive descriptor field present flag - update test when standardized, or remove this comment
         #[rustfmt::skip]
         #[allow(clippy::unusual_byte_groupings)]
         #[allow(clippy::unreadable_literal)]
         let input: [u8; 39] = [
-            0b0000_10_00,
-            0b00000001_,
+            0b000_10_000,
+            0b0000001_0,
             0b00000000,
-            0b01_000000,
-            0b0001_0000,
-            0b000010_00,
-            0b00000010_,
+            0b1_0000000,
+            0b001_00000,
+            0b00010_000,
+            0b0000010_0,
+            0b00000001,
+            0b0_0000000,
+            0b001_00000,
+            0b00001_000,
+            0b0000010_0,
             0b00000000,
-            0b10_000000,
-            0b0001_0000,
-            0b000001_00,
-            0b00000010_,
+            0b1_0000000,
+            0b001_00000,
+            0b00011_000,
+            0b0000001_0,
             0b00000000,
-            0b01_000000,
-            0b0001_0000,
-            0b000011_00,
-            0b00000001_,
-            0b00000000,
-            0b01_000000,
-            0b0001_0000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b000_00000,
+            0b1_0000000,
+            0b001_00000,
             0b00000000,
             0b00000000,
             0b00000000,
-            0b000_00000,
-            0b00000000,
-            0b00001_001,
-            0b0_0010_000,
-            0b000000_00,
-            0b000_00000_,
-            0b00000_000,
             0b00_000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00_000000,
+            0b00000000,
+            0b0001_0010,
+            0b_0010_0000,
+            0b00000_000,
+            0b00_00000_0,
             0b0000_0000,
-            0b000000_00,
-            0b00000000_,
-            0b00101_000,
+            0b0_0000000,
+            0b000_00000,
+            0b00000_000,
+            0b0000000_0,
+            0b0101_0000,
         ];
         // fields                 ^fl ^u ^ entityid                                       ^ entityid                                       ^ entityid                                   ^ eventid                                        ^ velocity 1,1,1                                 ^ world location                                                                                                            ^ entity type                                                   ^ entity location                            ^ results ^ remainder
-        // bits                   ^4  ^2 ^ 3x 10                                          ^ 3x 10                                          ^ 3x 10                                      ^ 3x 10                                          ^ 3x 10                                          ^ 31,32,18                                                                                                                  ^ 4,4,9,5,5,5,5                                                 ^ 3x 10                                      ^ 5       ^
+        // bits                   ^3  ^2 ^ 3x 10                                          ^ 3x 10                                          ^ 3x 10                                      ^ 3x 10                                          ^ 3x 10                                          ^ 31,32,18                                                                                                                  ^ 4,4,9,5,5,5,5                                                 ^ 3x 10                                      ^ 5       ^
         // values                 ^0  ^1 ^ 1,1,1                                          ^ 2,2,2                                          ^ 1,1,2                                      ^ 1,1,3                                          ^ 1,1,1                                          ^ 0 0 0                                                                                                                     ^ 2,2,0,0,0,0,0                                                 ^ 0 0 0                                      ^ 5       ^
 
         let ((_input, cursor), body) = detonation_body((&input, 0)).unwrap();
 
-        assert_eq!(cursor, 5); // cursor position in last byte of input
+        assert_eq!(cursor, 4); // cursor position in last byte of input
         if let CdisBody::Detonation(detonation) = body {
             assert_eq!(
                 detonation.units.world_location_altitude,

@@ -1,8 +1,7 @@
 use crate::BodyProperties;
 use crate::constants::{EIGHT_BITS, ONE_BIT};
 use crate::detonation::model::Detonation;
-use crate::types::model::CdisFloat;
-use crate::writing::{BitBuffer, SerializeCdis, serialize_when_present, write_integer_bits};
+use crate::writing::{BitBuffer, SerializeCdis, write_integer_bits};
 
 impl SerializeCdis for Detonation {
     #[allow(clippy::let_and_return)]
@@ -22,28 +21,59 @@ impl SerializeCdis for Detonation {
             ONE_BIT,
             u8::from(self.units.location_entity_coordinates),
         );
-
         let cursor = self.source_entity_id.serialize(buf, cursor);
         let cursor = self.target_entity_id.serialize(buf, cursor);
         let cursor = self.exploding_entity_id.serialize(buf, cursor);
         let cursor = self.event_id.serialize(buf, cursor);
-
         let cursor = self.entity_linear_velocity.serialize(buf, cursor);
         let cursor = self.location_in_world_coordinates.serialize(buf, cursor);
-
         let cursor = self.descriptor_entity_type.serialize(buf, cursor);
-        let cursor = serialize_when_present(&self.descriptor_warhead, buf, cursor);
-        let cursor = serialize_when_present(&self.descriptor_fuze, buf, cursor);
 
-        let cursor = serialize_when_present(&self.descriptor_quantity, buf, cursor);
-        let cursor = serialize_when_present(&self.descriptor_rate, buf, cursor);
-
-        let cursor = serialize_when_present(&self.descriptor_explosive_material, buf, cursor);
-        let cursor = if let Some(explosive_force) = &self.descriptor_explosive_force {
-            explosive_force.serialize(buf, cursor)
+        // Descriptor::Warhead and Descriptor::Fuze share the same FieldPresentFlag, and it is
+        // sufficient for only one of them to be non-zero to raise the flag
+        let cursor = if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
+            let cursor = if let Some(warhead) = self.descriptor_warhead {
+                warhead.serialize(buf, cursor)
+            } else {
+                0u16.serialize(buf, cursor)
+            };
+            let cursor = if let Some(fuze) = self.descriptor_fuze {
+                fuze.serialize(buf, cursor)
+            } else {
+                0u16.serialize(buf, cursor)
+            };
+            cursor
         } else {
             cursor
         };
+
+        // Descriptor::Quantity and Descriptor::Rate share the same FieldPresentFlag, and it is
+        // sufficient for only one of them to be non-zero to raise the flag
+        let cursor = if self.descriptor_quantity.is_some() || self.descriptor_rate.is_some() {
+            let cursor = if let Some(quantity) = self.descriptor_quantity {
+                quantity.serialize(buf, cursor)
+            } else {
+                0u8.serialize(buf, cursor)
+            };
+            let cursor = if let Some(rate) = self.descriptor_rate {
+                rate.serialize(buf, cursor)
+            } else {
+                0u8.serialize(buf, cursor)
+            };
+            cursor
+        } else {
+            cursor
+        };
+
+        // Note: See `DetonationFieldsPresent` for the reason why the following code is disabled
+        // -----------------------------------------------------------------------------------------
+        // let cursor = serialize_when_present(&self.descriptor_explosive_material, buf, cursor);
+        // let cursor = if let Some(explosive_force) = &self.descriptor_explosive_force {
+        //     explosive_force.serialize(buf, cursor)
+        // } else {
+        //     cursor
+        // };
+        // -----------------------------------------------------------------------------------------
 
         let cursor = self.location_in_entity_coordinates.serialize(buf, cursor);
         let cursor = self.detonation_results.serialize(buf, cursor);
@@ -133,48 +163,48 @@ mod tests {
         #[allow(clippy::unusual_byte_groupings)]
         #[allow(clippy::unreadable_literal)]
         let expected: [u8; 39] = [
-            0b0000_10_00,
-            0b00000001_,
+            0b000_10_000,
+            0b0000001_0,
             0b00000000,
-            0b01_000000,
-            0b0001_0000,
-            0b000010_00,
-            0b00000010_,
+            0b1_0000000,
+            0b001_00000,
+            0b00010_000,
+            0b0000010_0,
+            0b00000001,
+            0b0_0000000,
+            0b001_00000,
+            0b00001_000,
+            0b0000010_0,
             0b00000000,
-            0b10_000000,
-            0b0001_0000,
-            0b000001_00,
-            0b00000010_,
+            0b1_0000000,
+            0b001_00000,
+            0b00011_000,
+            0b0000001_0,
             0b00000000,
-            0b01_000000,
-            0b0001_0000,
-            0b000011_00,
-            0b00000001_,
-            0b00000000,
-            0b01_000000,
-            0b0001_0000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b000_00000,
+            0b1_0000000,
+            0b001_00000,
             0b00000000,
             0b00000000,
             0b00000000,
-            0b000_00000,
-            0b00000000,
-            0b00001_001,
-            0b0_0010_000,
-            0b000000_00,
-            0b000_00000_,
-            0b00000_000,
             0b00_000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00_000000,
+            0b00000000,
+            0b0001_0010,
+            0b_0010_0000,
+            0b00000_000,
+            0b00_00000_0,
             0b0000_0000,
-            0b000000_00,
-            0b00000000_,
-            0b00101_000,
+            0b0_0000000,
+            0b000_00000,
+            0b00000_000,
+            0b0000000_0,
+            0b0101_0000,
         ];
         // fields                    ^fl ^u ^ entityid                                       ^ entityid                                       ^ entityid                                   ^ eventid                                        ^ velocity 1,1,1                                 ^ world location                                                                                                            ^ entity type                                                   ^ entity location                            ^ results ^ remainder
-        // bits                      ^4  ^2 ^ 3x 10                                          ^ 3x 10                                          ^ 3x 10                                      ^ 3x 10                                          ^ 3x 10                                          ^ 31,32,18                                                                                                                  ^ 4,4,9,5,5,5,5                                                 ^ 3x 10                                      ^ 5       ^
+        // bits                      ^3  ^2 ^ 3x 10                                          ^ 3x 10                                          ^ 3x 10                                      ^ 3x 10                                          ^ 3x 10                                          ^ 31,32,18                                                                                                                  ^ 4,4,9,5,5,5,5                                                 ^ 3x 10                                      ^ 5       ^
         // values                    ^0  ^1 ^ 1,1,1                                          ^ 2,2,2                                          ^ 1,1,2                                      ^ 1,1,3                                          ^ 1,1,1                                          ^ 0 0 0                                                                                                                     ^ 2,2,0,0,0,0,0                                                 ^ 0 0 0                                      ^ 5       ^
 
         assert_eq!(buf.data[..39], expected);
