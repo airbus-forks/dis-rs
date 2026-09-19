@@ -509,15 +509,15 @@ pub struct CdisEntityMarking {
 
 impl CdisEntityMarking {
     #[must_use]
-    pub fn new(marking: String) -> Self {
+    pub fn new(marking: &str) -> Self {
         const MAX_MARKING_LENGTH: usize = 11;
-        let marking = if marking.len() > MAX_MARKING_LENGTH {
-            let mut marking = marking;
-            marking.truncate(MAX_MARKING_LENGTH);
-            marking
-        } else {
-            marking
-        };
+        // Safely keep only the first 11 chars (regardless of individual UTF-8 character byte size)
+        // and uppercase them
+        let marking: String = marking
+            .chars()
+            .take(MAX_MARKING_LENGTH)
+            .map(|c| c.to_ascii_uppercase())
+            .collect();
 
         Self {
             char_encoding: Self::check_char_encoding(&marking),
@@ -575,7 +575,7 @@ impl From<(&[u8], CdisMarkingCharEncoding)> for CdisEntityMarking {
 
 impl From<&str> for CdisEntityMarking {
     fn from(value: &str) -> Self {
-        CdisEntityMarking::new(value.into())
+        CdisEntityMarking::new(value)
     }
 }
 

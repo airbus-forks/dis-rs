@@ -140,7 +140,7 @@ fn decode_cdis_to_dis_entity_state_full_mode() {
         dr_params_other: None,
         dr_params_entity_linear_acceleration: None,
         dr_params_entity_angular_velocity: None,
-        entity_marking: Some(CdisEntityMarking::new("TEST".to_string())),
+        entity_marking: Some(CdisEntityMarking::new("TEST")),
         capabilities: Some(CdisEntityCapabilities(UVINT32::from(0xABC0_0000))),
         variable_parameters: vec![],
     }

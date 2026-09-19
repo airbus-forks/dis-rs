@@ -181,9 +181,7 @@ impl EntityState {
                 Some(entity_location),
                 Some(Orientation::encode(&item.entity_orientation)),
                 Some((&item.entity_appearance).into()),
-                Some(CdisEntityMarking::new(
-                    item.entity_marking.marking_string.clone(),
-                )),
+                Some(CdisEntityMarking::new(&item.entity_marking.marking_string)),
                 if options.update_mode == CodecUpdateMode::PartialUpdate {
                     CodecStateResult::StateUpdateEntityState
                 } else {
@@ -614,7 +612,7 @@ mod tests {
             );
             assert!(es.alternate_entity_type.is_none());
             assert!(es.entity_orientation.is_some());
-            assert_eq!(es.entity_marking.unwrap().marking, "Encode01".to_string());
+            assert_eq!(es.entity_marking.unwrap().marking, "ENCODE01".to_string());
             assert_eq!(es.dr_algorithm, DeadReckoningAlgorithm::Other);
             assert!(es.dr_params_other.is_none());
         } else {
@@ -649,7 +647,7 @@ mod tests {
             );
             assert!(es.alternate_entity_type.is_none());
             assert!(es.entity_orientation.is_some());
-            assert_eq!(es.entity_marking.unwrap().marking, "Encode01".to_string());
+            assert_eq!(es.entity_marking.unwrap().marking, "ENCODE01".to_string());
         } else {
             panic!()
         }
@@ -716,7 +714,7 @@ mod tests {
             );
             assert!(es.alternate_entity_type.is_none());
             assert!(es.entity_orientation.is_some());
-            assert_eq!(es.entity_marking.unwrap().marking, "Encode01".to_string());
+            assert_eq!(es.entity_marking.unwrap().marking, "ENCODE01".to_string());
             assert_eq!(
                 es.dr_algorithm,
                 DeadReckoningAlgorithm::DRM_FVW_HighSpeedOrManeuveringEntity
@@ -825,7 +823,7 @@ mod tests {
             dr_params_other: Some(CdisDRParametersOther::from(0)),
             dr_params_entity_linear_acceleration: Some(LinearAcceleration::new(SVINT14::from(10), SVINT14::from(10), SVINT14::from(10))),
             dr_params_entity_angular_velocity: Some(AngularVelocity::new(SVINT12::from(1), SVINT12::from(2), SVINT12::from(3))),
-            entity_marking: Some(CdisEntityMarking::new("CDIS01".to_string())),
+            entity_marking: Some(CdisEntityMarking::new("CDIS01")),
             capabilities: None,
             variable_parameters: vec![],
         }.into_cdis_body();
@@ -870,7 +868,7 @@ mod tests {
             dr_params_other: Some(CdisDRParametersOther::from(0)),
             dr_params_entity_linear_acceleration: Some(LinearAcceleration::new(SVINT14::from(10), SVINT14::from(10), SVINT14::from(10))),
             dr_params_entity_angular_velocity: Some(AngularVelocity::new(SVINT12::from(1), SVINT12::from(2), SVINT12::from(3))),
-            entity_marking: Some(CdisEntityMarking::new("CDIS01".to_string())),
+            entity_marking: Some(CdisEntityMarking::new("CDIS01")),
             capabilities: None,
             variable_parameters: vec![CdisVariableParameter::ArticulatedPart(CdisArticulatedPartVP {
                 change_indicator: 0,
@@ -922,7 +920,7 @@ mod tests {
             dr_params_other: Some(CdisDRParametersOther::from(0)),
             dr_params_entity_linear_acceleration: Some(LinearAcceleration::new(SVINT14::from(10), SVINT14::from(10), SVINT14::from(10))),
             dr_params_entity_angular_velocity: Some(AngularVelocity::new(SVINT12::from(1), SVINT12::from(2), SVINT12::from(3))),
-            entity_marking: Some(CdisEntityMarking::new("CDIS01".to_string())),
+            entity_marking: Some(CdisEntityMarking::new("CDIS01")),
             capabilities: None,
             variable_parameters: vec![],
         }.into_cdis_body();

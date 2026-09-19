@@ -726,7 +726,7 @@ mod tests {
             dr_params_other: None,
             dr_params_entity_linear_acceleration: None,
             dr_params_entity_angular_velocity: None,
-            entity_marking: Some(CdisEntityMarking::new("TEST".to_string())),
+            entity_marking: Some(CdisEntityMarking::new("TEST")),
             capabilities: Some(CdisEntityCapabilities(UVINT32::from(0x15D))),
             variable_parameters: vec![],
         }
