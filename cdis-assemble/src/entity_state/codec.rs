@@ -483,13 +483,21 @@ pub(crate) fn encode_dr_linear_acceleration(
     }
 }
 
-/// Encodes the Dead Reckoning Angular Velocity field when the Dead Reckoning Algorithm requires it (no 3, 4, 7 and 8).
+/// Encodes the Dead Reckoning Angular Velocity field when the Dead Reckoning Algorithm requires it (no 3, 4, 6, 7, 8 and 9).
 fn encode_dr_angular_velocity(item: &Counterpart) -> Option<AngularVelocity> {
     match item.dead_reckoning_parameters.algorithm {
+        // The Angular Velocity is used by all rotating algorithms (DRM_Rxx) and algorithms where
+        // the linear velocity and acceleration are given in entity body coordinates (DRM_xxB).
+        // Refs:
+        //  - IEEE Std 1278.1-2012: §E.6 "Dead reckoning formulas", §E.7 "Dead reckoning
+        //      mathematics"
+        //  - SISO-REF-010-2023: §17.1.1 "Dead Reckoning Algorithm [UID 44]"
         DeadReckoningAlgorithm::DRM_RPW_ConstantVelocityLowAccelerationLinearMotionEntityWithExtrapolationOfOrientation |
         DeadReckoningAlgorithm::DRM_RVW_HighSpeedOrManeuveringEntityWithExtrapolationOfOrientation |
+        DeadReckoningAlgorithm::DRM_FPB_SimilarToFPWExceptInBodyCoordinates |
         DeadReckoningAlgorithm::DRM_RPB_SimilarToRPWExceptInBodyCoordinates |
-        DeadReckoningAlgorithm::DRM_RVB_SimilarToRVWExceptInBodyCoordinates => {
+        DeadReckoningAlgorithm::DRM_RVB_SimilarToRVWExceptInBodyCoordinates |
+        DeadReckoningAlgorithm::DRM_FVB_SimilarToFVWExceptInBodyCoordinates => {
             Some(AngularVelocity::encode(&item.dead_reckoning_parameters.angular_velocity))
         }
         _ => { None }
