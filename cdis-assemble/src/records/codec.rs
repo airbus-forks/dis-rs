@@ -525,6 +525,10 @@ impl Codec for CdisArticulatedPartVP {
     type Counterpart = ArticulatedPart;
 
     fn encode(item: &Self::Counterpart) -> Self {
+        // TODO SISO-STD-023-2023: [12.1] specifies that the 16-bit "ID-Part Attached To" field
+        //      should be encoded in 10 bits but does not clarify how to handle the case when this
+        //      conversion does not preserve the original ID (i.e. truncation leads to a totally
+        //      different ID).
         Self {
             change_indicator: item.change_indicator,
             attachment_id: item.attachment_id,
