@@ -33,7 +33,7 @@ impl BodyProperties for Signal {
     }
 
     fn body_length_bits(&self) -> usize {
-        const CONST_BIT_SIZE: usize = 24; // encoding scheme class, tdl type, data length
+        const CONST_BIT_SIZE: usize = 22; // tdl type, data length
         Self::FIELDS_PRESENT_LENGTH
             + CONST_BIT_SIZE
             + self.radio_reference_id.record_length()
