@@ -1,6 +1,7 @@
 use crate::codec::Codec;
 use crate::codec::{CodecOptions, CodecStateResult, CodecUpdateMode, DecoderState, EncoderState};
 use crate::designator::model::{Designator, DesignatorUnits};
+use crate::entity_state::codec::encode_dr_linear_acceleration;
 use crate::records::codec::{
     decode_entity_coordinate_vector, decode_world_coordinates, encode_entity_coordinate_vector,
     encode_world_coordinates,
@@ -8,13 +9,11 @@ use crate::records::codec::{
 use crate::records::model::{EntityId, UnitsDekameters, UnitsMeters};
 use crate::types::model::{UVINT16, UVINT32};
 use crate::{BodyProperties, CdisBody};
-use dis_rs::enumerations::{DesignatorCode, DesignatorSystemName};
-use dis_rs::model::{EntityId as DisEntityId, Location, PduBody, VectorF32};
-use std::time::Instant;
-
-use crate::entity_state::codec::encode_dr_linear_acceleration;
 use dis_rs::BodyRaw;
+use dis_rs::enumerations::{DeadReckoningAlgorithm, DesignatorCode, DesignatorSystemName};
+use dis_rs::model::{EntityId as DisEntityId, Location, PduBody};
 use num_traits::FromPrimitive;
+use std::time::Instant;
 
 type Counterpart = dis_rs::designator::model::Designator;
 
@@ -122,35 +121,44 @@ impl Designator {
         state: Option<&EncoderStateDesignator>,
         options: &CodecOptions,
     ) -> (Self, CodecStateResult) {
-        let designated_entity_id = if item.designated_entity_id != DisEntityId::default() {
-            Some(EntityId::encode(&item.designated_entity_id))
-        } else {
-            None
-        };
-        let (spot_wrt_designated_entity, location_wrt_entity_units) =
-            if item.spot_wrt_designated_entity != VectorF32::default() {
+        let designating_entity_id = EntityId::encode(&item.designating_entity_id);
+
+        // When no designated entity is provided, the spot location in entity coordinates is also meaningless
+        let (designated_entity_id, spot_wrt_designated_entity, location_wrt_entity_units) =
+            if item.designated_entity_id != DisEntityId::default() {
+                let designated_entity_id = EntityId::encode(&item.designated_entity_id);
                 let (spot_wrt_designated_entity, location_wrt_entity_units) =
                     encode_entity_coordinate_vector(&item.spot_wrt_designated_entity);
-                (Some(spot_wrt_designated_entity), location_wrt_entity_units)
+                (
+                    Some(designated_entity_id),
+                    Some(spot_wrt_designated_entity),
+                    location_wrt_entity_units,
+                )
             } else {
-                (None, UnitsMeters::default())
+                (None, None, UnitsMeters::default())
             };
-        let (dr_algorithm, dr_entity_linear_acceleration) = {
-            let dr_algorithm = Some(item.dead_reckoning_algorithm);
-            let dr_params_entity_linear_acceleration = encode_dr_linear_acceleration(
-                item.dead_reckoning_algorithm,
-                &item.linear_acceleration,
-            );
-            (dr_algorithm, dr_params_entity_linear_acceleration)
-        };
+
+        // When no DR algorithm is specified, the acceleration is not usable
+        let (dr_algorithm, dr_entity_linear_acceleration) =
+            if item.dead_reckoning_algorithm != DeadReckoningAlgorithm::Other {
+                let dr_algorithm = Some(item.dead_reckoning_algorithm);
+                let dr_entity_linear_acceleration = encode_dr_linear_acceleration(
+                    item.dead_reckoning_algorithm,
+                    &item.linear_acceleration,
+                );
+                (dr_algorithm, dr_entity_linear_acceleration)
+            } else {
+                (None, None)
+            };
+
         let (
             full_update_flag,
-            world_location_altitude,
             code_name,
             designator_code,
             designator_power,
             designator_wavelength,
             designator_spot_location,
+            world_location_altitude_units,
             state_result,
         ) = if options.update_mode == CodecUpdateMode::PartialUpdate
             && state
@@ -159,29 +167,27 @@ impl Designator {
             // Do not update stateful fields when a full update is not required
             (
                 false,
+                None,
+                None,
+                None,
+                None,
+                None,
                 UnitsDekameters::default(),
-                None,
-                None,
-                None,
-                None,
-                None,
                 CodecStateResult::StateUnaffected,
             )
         } else {
+            // Full update mode, or heartbeat timeout has expired in partial update mode
+            let wavelength = item.wavelength * 10f32; // microns (DIS) -> nanometers (C-DIS)
             let (spot_location, world_location_altitude_units) =
                 encode_world_coordinates(&item.spot_location);
-            let code: u16 = item.code.into();
-            let power = u32::from_f32(item.power).unwrap_or_default();
-            let wavelength = u32::from_f32(item.wavelength).unwrap_or_default();
-
             (
                 true,
-                world_location_altitude_units,
                 Some(item.system_name),
-                Some(UVINT16::from(code)),
-                Some(UVINT32::from(power)),
-                Some(UVINT32::from(wavelength)),
+                Some(UVINT16::from(u16::from(item.code))),
+                Some(UVINT32::from(u32::from_f32(item.power).unwrap_or_default())),
+                Some(UVINT32::from(u32::from_f32(wavelength).unwrap_or_default())),
                 Some(spot_location),
+                world_location_altitude_units,
                 CodecStateResult::StateUpdateDesignator,
             )
         };
@@ -189,11 +195,11 @@ impl Designator {
         (
             Self {
                 units: DesignatorUnits {
-                    location_wrt_entity_units,
-                    world_location_altitude,
+                    location_wrt_entity: location_wrt_entity_units,
+                    world_location_altitude: world_location_altitude_units,
                 },
                 full_update_flag,
-                designating_entity_id: EntityId::encode(&item.designating_entity_id),
+                designating_entity_id,
                 code_name,
                 designated_entity_id,
                 designator_code,
@@ -213,83 +219,57 @@ impl Designator {
         state: Option<&DecoderStateDesignator>,
         _options: &CodecOptions,
     ) -> (Counterpart, CodecStateResult) {
-        let (
-            code_name,
-            designator_code,
-            designator_power,
-            designator_wavelength,
-            designator_spot_location,
-            state_result,
-        ) = if self.full_update_flag {
-            (
-                self.code_name.unwrap_or_default(),
-                DesignatorCode::from(self.designator_code.unwrap_or_default().value),
-                f32::from_u32(self.designator_power.unwrap_or_default().value).unwrap_or_default(),
-                f32::from_u32(self.designator_wavelength.unwrap_or_default().value)
-                    .unwrap_or_default(),
-                decode_world_coordinates(
-                    &self.designator_spot_location.unwrap_or_default(),
-                    self.units.world_location_altitude,
-                ),
-                CodecStateResult::StateUpdateDesignator,
-            )
+        let state_result = if self.full_update_flag {
+            CodecStateResult::StateUpdateDesignator
         } else {
-            (
-                self.code_name.unwrap_or_else(|| {
-                    if let Some(state) = state {
-                        state.code_name
-                    } else {
-                        DesignatorSystemName::default()
-                    }
-                }),
-                self.designator_code.map_or_else(
-                    || {
-                        if let Some(state) = state {
-                            state.designator_code
-                        } else {
-                            DesignatorCode::default()
-                        }
-                    },
-                    |record| DesignatorCode::from(record.value),
-                ),
-                self.designator_power.map_or_else(
-                    || {
-                        if let Some(state) = state {
-                            state.designator_power
-                        } else {
-                            Default::default()
-                        }
-                    },
-                    |record| f32::from_u32(record.value).unwrap_or_default(),
-                ),
-                self.designator_wavelength.map_or_else(
-                    || {
-                        if let Some(state) = state {
-                            state.designator_wavelength
-                        } else {
-                            Default::default()
-                        }
-                    },
-                    |record| f32::from_u32(record.value).unwrap_or_default(),
-                ),
-                self.designator_spot_location.map_or_else(
-                    || {
-                        if let Some(state) = state {
-                            state.designator_spot_location
-                        } else {
-                            Location::default()
-                        }
-                    },
-                    |record| decode_world_coordinates(&record, self.units.world_location_altitude),
-                ),
-                CodecStateResult::StateUnaffected,
-            )
+            CodecStateResult::StateUnaffected
         };
+
+        // If an optional field is missing and the PDU is a partial update, then attempt to retrieve
+        // the field from the decoder state
+        let fallback = if self.full_update_flag { None } else { state };
+        let system_name = self
+            .code_name
+            .unwrap_or_else(|| fallback.map(|state| state.code_name).unwrap_or_default());
+        let code = self.designator_code.map_or_else(
+            || {
+                fallback
+                    .map(|state| state.designator_code)
+                    .unwrap_or_default()
+            },
+            |code| DesignatorCode::from(code.value),
+        );
+        let power = self.designator_power.map_or_else(
+            || {
+                fallback
+                    .map(|state| state.designator_power)
+                    .unwrap_or_default()
+            },
+            |power| f32::from_u32(power.value).unwrap_or_default(),
+        );
+        let wavelength = self.designator_wavelength.map_or_else(
+            || {
+                fallback
+                    .map(|state| state.designator_wavelength)
+                    .unwrap_or_default()
+            },
+            |wavelength| f32::from_u32(wavelength.value).unwrap_or_default() / 10f32, // nanometers (C-DIS) -> microns (DIS)
+        );
+        let spot_location = self.designator_spot_location.map_or_else(
+            || {
+                fallback
+                    .map(|state| state.designator_spot_location)
+                    .unwrap_or_default()
+            },
+            |spot_location| {
+                decode_world_coordinates(&spot_location, self.units.world_location_altitude)
+            },
+        );
 
         let designated_entity_id = self.designated_entity_id.unwrap_or_default().decode();
         let spot_wrt_designated_entity = decode_entity_coordinate_vector(
             &self.spot_wrt_designated_entity.unwrap_or_default(),
-            self.units.location_wrt_entity_units,
+            self.units.location_wrt_entity,
         );
         let dr_algorithm = self.dr_algorithm.unwrap_or_default();
         let dr_entity_linear_acceleration = self
@@ -300,13 +280,13 @@ impl Designator {
         (
             Counterpart::builder()
                 .with_designating_entity_id(self.designating_entity_id.decode())
-                .with_system_name(code_name)
+                .with_system_name(system_name)
                 .with_designated_entity_id(designated_entity_id)
-                .with_code(designator_code)
-                .with_power(designator_power)
-                .with_wavelength(designator_wavelength)
+                .with_code(code)
+                .with_power(power)
+                .with_wavelength(wavelength)
                 .with_spot_wrt_designated_entity(spot_wrt_designated_entity)
-                .with_spot_location(designator_spot_location)
+                .with_spot_location(spot_location)
                 .with_dead_reckoning_algorithm(dr_algorithm)
                 .with_linear_acceleration(dr_entity_linear_acceleration)
                 .build(),

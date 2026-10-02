@@ -123,7 +123,7 @@ mod tests {
             assert_eq!(
                 designator.units,
                 DesignatorUnits {
-                    location_wrt_entity_units: UnitsMeters::Centimeter,
+                    location_wrt_entity: UnitsMeters::Centimeter,
                     world_location_altitude: UnitsDekameters::Centimeter,
                 }
             );

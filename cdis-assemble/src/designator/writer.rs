@@ -14,7 +14,7 @@ impl SerializeCdis for Designator {
             buf,
             cursor,
             ONE_BIT,
-            u8::from(self.units.location_wrt_entity_units),
+            u8::from(self.units.location_wrt_entity),
         );
         let cursor = write_integer_bits(
             buf,

@@ -121,7 +121,7 @@ impl CdisInteraction for Designator {
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct DesignatorUnits {
-    pub location_wrt_entity_units: UnitsMeters,
+    pub location_wrt_entity: UnitsMeters,
     pub world_location_altitude: UnitsDekameters,
 }
 
@@ -130,7 +130,7 @@ impl From<u8> for DesignatorUnits {
         const LOCATION_WRT_ENTITY_BIT: u8 = 0x02;
         const WORLD_LOCATION_ALTITUDE_BIT: u8 = 0x01;
         Self {
-            location_wrt_entity_units: UnitsMeters::from((value & LOCATION_WRT_ENTITY_BIT) >> 1),
+            location_wrt_entity: UnitsMeters::from((value & LOCATION_WRT_ENTITY_BIT) >> 1),
             world_location_altitude: UnitsDekameters::from(value & WORLD_LOCATION_ALTITUDE_BIT),
         }
     }
