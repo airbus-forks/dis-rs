@@ -16,17 +16,17 @@ pub struct DataQuery {
 }
 
 impl BodyProperties for DataQuery {
-    type FieldsPresent = DataQueryFieldsPresent;
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = DataQueryFieldsPresent;
+    type FieldsPresentField = u8;
     const FIELDS_PRESENT_LENGTH: usize = 2;
 
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if !self.fixed_datum_ids.is_empty() {
-            Self::FieldsPresent::FIXED_DATUMS_BIT
+            Self::FieldsPresentFlags::FIXED_DATUMS_BIT
         } else {
             0
         }) | (if !self.variable_datum_ids.is_empty() {
-            Self::FieldsPresent::VARIABLE_DATUMS_BIT
+            Self::FieldsPresentFlags::VARIABLE_DATUMS_BIT
         } else {
             0
         })

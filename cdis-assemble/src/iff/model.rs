@@ -32,57 +32,57 @@ pub struct Iff {
 }
 
 impl BodyProperties for Iff {
-    type FieldsPresent = IffLayer1FieldsPresent;
-    type FieldsPresentOutput = u16;
+    type FieldsPresentFlags = IffLayer1FieldsPresent;
+    type FieldsPresentField = u16;
     const FIELDS_PRESENT_LENGTH: usize = 12;
 
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.event_id.is_some() {
-            Self::FieldsPresent::EVENT_ID_BIT
+            Self::FieldsPresentFlags::EVENT_ID_BIT
         } else {
             0
         }) | (if self.relative_antenna_location.is_some() {
-            Self::FieldsPresent::RELATIVE_ANTENNA_LOCATION_BIT
+            Self::FieldsPresentFlags::RELATIVE_ANTENNA_LOCATION_BIT
         } else {
             0
         }) | (if self.system_id.is_some() {
-            Self::FieldsPresent::SYSTEM_ID_DETAILS_BIT
+            Self::FieldsPresentFlags::SYSTEM_ID_DETAILS_BIT
         } else {
             0
         }) | (if self.system_specific_data.is_some() {
-            Self::FieldsPresent::SYSTEM_SPECIFIC_DATA_BIT
+            Self::FieldsPresentFlags::SYSTEM_SPECIFIC_DATA_BIT
         } else {
             0
         }) | (if self.fundamental_operational_data.data_field_1.is_some() {
-            Self::FieldsPresent::DATA_FIELD_1_BIT
+            Self::FieldsPresentFlags::DATA_FIELD_1_BIT
         } else {
             0
         }) | (if self.fundamental_operational_data.data_field_2.is_some() {
-            Self::FieldsPresent::DATA_FIELD_2_BIT
+            Self::FieldsPresentFlags::DATA_FIELD_2_BIT
         } else {
             0
         }) | (if self.fundamental_operational_data.parameter_1.is_some() {
-            Self::FieldsPresent::PARAMETER_1_BIT
+            Self::FieldsPresentFlags::PARAMETER_1_BIT
         } else {
             0
         }) | (if self.fundamental_operational_data.parameter_2.is_some() {
-            Self::FieldsPresent::PARAMETER_2_BIT
+            Self::FieldsPresentFlags::PARAMETER_2_BIT
         } else {
             0
         }) | (if self.fundamental_operational_data.parameter_3.is_some() {
-            Self::FieldsPresent::PARAMETER_3_BIT
+            Self::FieldsPresentFlags::PARAMETER_3_BIT
         } else {
             0
         }) | (if self.fundamental_operational_data.parameter_4.is_some() {
-            Self::FieldsPresent::PARAMETER_4_BIT
+            Self::FieldsPresentFlags::PARAMETER_4_BIT
         } else {
             0
         }) | (if self.fundamental_operational_data.parameter_5.is_some() {
-            Self::FieldsPresent::PARAMETER_5_BIT
+            Self::FieldsPresentFlags::PARAMETER_5_BIT
         } else {
             0
         }) | (if self.fundamental_operational_data.parameter_6.is_some() {
-            Self::FieldsPresent::PARAMETER_6_BIT
+            Self::FieldsPresentFlags::PARAMETER_6_BIT
         } else {
             0
         })

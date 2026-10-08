@@ -32,17 +32,17 @@ pub struct Detonation {
 }
 
 impl BodyProperties for Detonation {
-    type FieldsPresent = DetonationFieldsPresent;
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = DetonationFieldsPresent;
+    type FieldsPresentField = u8;
     const FIELDS_PRESENT_LENGTH: usize = THREE_BITS;
 
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
-            Self::FieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT
+            Self::FieldsPresentFlags::DESCRIPTOR_WARHEAD_FUZE_BIT
         } else {
             0
         }) | (if self.descriptor_quantity.is_some() || self.descriptor_rate.is_some() {
-            Self::FieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT
+            Self::FieldsPresentFlags::DESCRIPTOR_QUANTITY_RATE_BIT
         } else {
             0
         }) | (if self.descriptor_explosive_material.is_some()
@@ -53,7 +53,7 @@ impl BodyProperties for Detonation {
         } else {
             0
         }) | (if !self.variable_parameters.is_empty() {
-            Self::FieldsPresent::VARIABLE_PARAMETERS_BIT
+            Self::FieldsPresentFlags::VARIABLE_PARAMETERS_BIT
         } else {
             0
         })

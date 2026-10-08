@@ -14,14 +14,9 @@ pub struct Receiver {
 }
 
 impl BodyProperties for Receiver {
-    type FieldsPresent = ();
-    type FieldsPresentOutput = ();
+    type FieldsPresentFlags = ();
+    type FieldsPresentField = ();
     const FIELDS_PRESENT_LENGTH: usize = 0;
-
-    #[allow(clippy::unused_unit, clippy::no_effect)]
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
-        ();
-    }
 
     fn body_length_bits(&self) -> usize {
         const CONST_BIT_SIZE: usize = 11; // receiver state and power.

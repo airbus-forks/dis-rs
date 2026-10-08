@@ -13,18 +13,18 @@ pub struct ActionResponse {
 }
 
 impl BodyProperties for ActionResponse {
-    type FieldsPresent = ActionResponseFieldsPresent;
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = ActionResponseFieldsPresent;
+    type FieldsPresentField = u8;
     const FIELDS_PRESENT_LENGTH: usize = 2;
 
     #[allow(clippy::if_not_else)]
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if !self.datum_specification.fixed_datum_records.is_empty() {
-            Self::FieldsPresent::FIXED_DATUMS_BIT
+            Self::FieldsPresentFlags::FIXED_DATUMS_BIT
         } else {
             0
         }) | (if !self.datum_specification.variable_datum_records.is_empty() {
-            Self::FieldsPresent::VARIABLE_DATUMS_BIT
+            Self::FieldsPresentFlags::VARIABLE_DATUMS_BIT
         } else {
             0
         })

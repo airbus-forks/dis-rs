@@ -42,29 +42,29 @@ pub struct Transmitter {
 }
 
 impl BodyProperties for Transmitter {
-    type FieldsPresent = TransmitterFieldsPresent;
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = TransmitterFieldsPresent;
+    type FieldsPresentField = u8;
     const FIELDS_PRESENT_LENGTH: usize = EIGHT_BITS;
 
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.radio_type.is_some() {
-            Self::FieldsPresent::RADIO_TYPE_BIT
+            Self::FieldsPresentFlags::RADIO_TYPE_BIT
         } else {
             0
         }) | (if !self.variable_transmitter_parameters.is_empty() {
-            Self::FieldsPresent::VARIABLE_PARAMETERS_BIT
+            Self::FieldsPresentFlags::VARIABLE_PARAMETERS_BIT
         } else {
             0
         }) | (if self.antenna_location.is_some() {
-            Self::FieldsPresent::ANTENNA_LOCATION_BIT
+            Self::FieldsPresentFlags::ANTENNA_LOCATION_BIT
         } else {
             0
         }) | (if self.relative_antenna_location.is_some() {
-            Self::FieldsPresent::RELATIVE_ANTENNA_LOCATION_BIT
+            Self::FieldsPresentFlags::RELATIVE_ANTENNA_LOCATION_BIT
         } else {
             0
         }) | (if self.antenna_pattern_type.is_some() && self.antenna_pattern.is_some() {
-            Self::FieldsPresent::ANTENNA_PATTERN_BIT
+            Self::FieldsPresentFlags::ANTENNA_PATTERN_BIT
         } else {
             0
         }) | (if self.frequency.is_some()
@@ -72,15 +72,15 @@ impl BodyProperties for Transmitter {
             && self.power.is_some()
             && self.modulation_type.is_some()
         {
-            Self::FieldsPresent::TRANSMITTER_DETAILS_BIT
+            Self::FieldsPresentFlags::TRANSMITTER_DETAILS_BIT
         } else {
             0
         }) | (if self.crypto_system.is_some() && self.crypto_key_id.is_some() {
-            Self::FieldsPresent::CRYPTO_DETAILS_BIT
+            Self::FieldsPresentFlags::CRYPTO_DETAILS_BIT
         } else {
             0
         }) | (if !self.modulation_parameters.is_empty() {
-            Self::FieldsPresent::MODULATION_PARAMETERS_BIT
+            Self::FieldsPresentFlags::MODULATION_PARAMETERS_BIT
         } else {
             0
         })

@@ -15,13 +15,9 @@ pub struct StopFreeze {
 }
 
 impl BodyProperties for StopFreeze {
-    type FieldsPresent = ();
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = ();
+    type FieldsPresentField = ();
     const FIELDS_PRESENT_LENGTH: usize = 0;
-
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
-        0
-    }
 
     fn body_length_bits(&self) -> usize {
         const CLOCK_TIME_LENGTH_BITS: usize = 64;

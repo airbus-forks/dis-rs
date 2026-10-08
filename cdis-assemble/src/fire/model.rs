@@ -24,25 +24,25 @@ pub struct Fire {
 }
 
 impl BodyProperties for Fire {
-    type FieldsPresent = FireFieldsPresent;
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = FireFieldsPresent;
+    type FieldsPresentField = u8;
     const FIELDS_PRESENT_LENGTH: usize = FOUR_BITS;
 
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.fire_mission_index.is_some() {
-            Self::FieldsPresent::FIRE_MISSION_INDEX_BIT
+            Self::FieldsPresentFlags::FIRE_MISSION_INDEX_BIT
         } else {
             0
         }) | (if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
-            Self::FieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT
+            Self::FieldsPresentFlags::DESCRIPTOR_WARHEAD_FUZE_BIT
         } else {
             0
         }) | (if self.descriptor_quantity.is_some() || self.descriptor_rate.is_some() {
-            Self::FieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT
+            Self::FieldsPresentFlags::DESCRIPTOR_QUANTITY_RATE_BIT
         } else {
             0
         }) | (if self.range.is_some() {
-            Self::FieldsPresent::RANGE_BIT
+            Self::FieldsPresentFlags::RANGE_BIT
         } else {
             0
         })

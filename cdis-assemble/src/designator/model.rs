@@ -24,13 +24,13 @@ pub struct Designator {
 }
 
 impl BodyProperties for Designator {
-    type FieldsPresent = DesignatorFieldsPresent;
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = DesignatorFieldsPresent;
+    type FieldsPresentField = u8;
     const FIELDS_PRESENT_LENGTH: usize = 4;
 
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.designated_entity_id.is_some() && self.spot_wrt_designated_entity.is_some() {
-            Self::FieldsPresent::DESIGNATED_ENTITY_ID_AND_SPOT_LOCATION_WRT_ENTITY_BIT
+            Self::FieldsPresentFlags::DESIGNATED_ENTITY_ID_AND_SPOT_LOCATION_WRT_ENTITY_BIT
         } else {
             0
         }) | (if self.code_name.is_some()
@@ -38,15 +38,15 @@ impl BodyProperties for Designator {
             && self.designator_power.is_some()
             && self.designator_wavelength.is_some()
         {
-            Self::FieldsPresent::DESIGNATOR_DETAILS_BIT
+            Self::FieldsPresentFlags::DESIGNATOR_DETAILS_BIT
         } else {
             0
         }) | (if self.designator_spot_location.is_some() {
-            Self::FieldsPresent::DESIGNATOR_SPOT_LOCATION_BIT
+            Self::FieldsPresentFlags::DESIGNATOR_SPOT_LOCATION_BIT
         } else {
             0
         }) | (if self.dr_algorithm.is_some() & self.dr_entity_linear_acceleration.is_some() {
-            Self::FieldsPresent::ENTITY_DR_AND_LINEAR_ACCELERATION_BIT
+            Self::FieldsPresentFlags::ENTITY_DR_AND_LINEAR_ACCELERATION_BIT
         } else {
             0
         })

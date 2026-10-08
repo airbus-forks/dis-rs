@@ -13,19 +13,19 @@ pub struct ActionRequest {
 }
 
 impl BodyProperties for ActionRequest {
-    type FieldsPresent = ActionRequestFieldsPresent;
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = ActionRequestFieldsPresent;
+    type FieldsPresentField = u8;
     const FIELDS_PRESENT_LENGTH: usize = 2;
 
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.datum_specification.fixed_datum_records.is_empty() {
             0
         } else {
-            Self::FieldsPresent::FIXED_DATUMS_BIT
+            Self::FieldsPresentFlags::FIXED_DATUMS_BIT
         }) | (if self.datum_specification.variable_datum_records.is_empty() {
             0
         } else {
-            Self::FieldsPresent::VARIABLE_DATUMS_BIT
+            Self::FieldsPresentFlags::VARIABLE_DATUMS_BIT
         })
     }
 

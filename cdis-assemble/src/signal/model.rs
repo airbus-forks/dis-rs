@@ -16,17 +16,17 @@ pub struct Signal {
 }
 
 impl BodyProperties for Signal {
-    type FieldsPresent = SignalFieldsPresent;
-    type FieldsPresentOutput = u8;
+    type FieldsPresentFlags = SignalFieldsPresent;
+    type FieldsPresentField = u8;
     const FIELDS_PRESENT_LENGTH: usize = TWO_BITS;
 
-    fn fields_present_field(&self) -> Self::FieldsPresentOutput {
+    fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.sample_rate.is_some() {
-            Self::FieldsPresent::SAMPLE_RATE_BIT
+            Self::FieldsPresentFlags::SAMPLE_RATE_BIT
         } else {
             0
         }) | (if self.samples.is_some() {
-            Self::FieldsPresent::SAMPLES_BIT
+            Self::FieldsPresentFlags::SAMPLES_BIT
         } else {
             0
         })
