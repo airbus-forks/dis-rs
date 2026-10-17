@@ -34,7 +34,7 @@ pub struct EntityState {
 impl BodyProperties for EntityState {
     type FieldsPresentFlags = EntityStateFieldsPresent;
     type FieldsPresentField = u16;
-    const FIELDS_PRESENT_LENGTH: usize = THIRTEEN_BITS;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = THIRTEEN_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.force_id.is_some() {
@@ -94,7 +94,7 @@ impl BodyProperties for EntityState {
 
     fn body_length_bits(&self) -> usize {
         const CONST_BIT_SIZE: usize = 5; // Full_update_flag + DR_algorithm
-        Self::FIELDS_PRESENT_LENGTH
+        Self::FIELDS_PRESENT_FLAGS_LENGTH
             + CONST_BIT_SIZE
             + self.units.record_length()
             + self.entity_id.record_length()

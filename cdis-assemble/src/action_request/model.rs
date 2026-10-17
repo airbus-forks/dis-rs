@@ -1,3 +1,4 @@
+use crate::constants::TWO_BITS;
 use crate::records::model::{CdisRecord, EntityId};
 use crate::types::model::{UVINT32, VarInt};
 use crate::{BodyProperties, CdisBody, CdisInteraction};
@@ -15,7 +16,7 @@ pub struct ActionRequest {
 impl BodyProperties for ActionRequest {
     type FieldsPresentFlags = ActionRequestFieldsPresent;
     type FieldsPresentField = u8;
-    const FIELDS_PRESENT_LENGTH: usize = 2;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = TWO_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.datum_specification.fixed_datum_records.is_empty() {
@@ -30,7 +31,7 @@ impl BodyProperties for ActionRequest {
     }
 
     fn body_length_bits(&self) -> usize {
-        Self::FIELDS_PRESENT_LENGTH
+        Self::FIELDS_PRESENT_FLAGS_LENGTH
             + self.originating_id.record_length()
             + self.receiving_id.record_length()
             + self.request_id.record_length()

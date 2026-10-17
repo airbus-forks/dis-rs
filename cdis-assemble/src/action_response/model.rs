@@ -1,3 +1,4 @@
+use crate::constants::TWO_BITS;
 use crate::records::model::{CdisRecord, EntityId};
 use crate::types::model::{UVINT32, VarInt};
 use crate::{BodyProperties, CdisBody, CdisInteraction};
@@ -15,7 +16,7 @@ pub struct ActionResponse {
 impl BodyProperties for ActionResponse {
     type FieldsPresentFlags = ActionResponseFieldsPresent;
     type FieldsPresentField = u8;
-    const FIELDS_PRESENT_LENGTH: usize = 2;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = TWO_BITS;
 
     #[allow(clippy::if_not_else)]
     fn fields_present_field(&self) -> Self::FieldsPresentField {
@@ -31,7 +32,7 @@ impl BodyProperties for ActionResponse {
     }
 
     fn body_length_bits(&self) -> usize {
-        Self::FIELDS_PRESENT_LENGTH
+        Self::FIELDS_PRESENT_FLAGS_LENGTH
             + self.originating_id.record_length()
             + self.receiving_id.record_length()
             + self.request_id.record_length()

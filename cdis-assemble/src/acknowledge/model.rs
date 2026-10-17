@@ -15,7 +15,6 @@ pub struct Acknowledge {
 impl BodyProperties for Acknowledge {
     type FieldsPresentFlags = ();
     type FieldsPresentField = ();
-    const FIELDS_PRESENT_LENGTH: usize = 0;
 
     fn body_length_bits(&self) -> usize {
         const FIXED_FLAGS_LENGTH_BITS: usize = 5; // Acknowledge flag (3) and Response flag (2)

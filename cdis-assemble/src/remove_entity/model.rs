@@ -12,7 +12,6 @@ pub struct RemoveEntity {
 impl BodyProperties for RemoveEntity {
     type FieldsPresentFlags = ();
     type FieldsPresentField = ();
-    const FIELDS_PRESENT_LENGTH: usize = 0;
 
     fn body_length_bits(&self) -> usize {
         self.originating_id.record_length()

@@ -28,7 +28,6 @@ pub struct ElectromagneticEmission {
 impl BodyProperties for ElectromagneticEmission {
     type FieldsPresentFlags = ();
     type FieldsPresentField = ();
-    const FIELDS_PRESENT_LENGTH: usize = 0;
 
     fn body_length_bits(&self) -> usize {
         const FIXED_FIELDS_BITS: usize = 18;

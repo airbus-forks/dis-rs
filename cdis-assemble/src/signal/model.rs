@@ -18,7 +18,7 @@ pub struct Signal {
 impl BodyProperties for Signal {
     type FieldsPresentFlags = SignalFieldsPresent;
     type FieldsPresentField = u8;
-    const FIELDS_PRESENT_LENGTH: usize = TWO_BITS;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = TWO_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.sample_rate.is_some() {
@@ -34,7 +34,7 @@ impl BodyProperties for Signal {
 
     fn body_length_bits(&self) -> usize {
         const CONST_BIT_SIZE: usize = 22; // tdl type, data length
-        Self::FIELDS_PRESENT_LENGTH
+        Self::FIELDS_PRESENT_FLAGS_LENGTH
             + CONST_BIT_SIZE
             + self.radio_reference_id.record_length()
             + self.radio_number.record_length()

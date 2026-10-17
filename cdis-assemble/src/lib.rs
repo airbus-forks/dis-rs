@@ -78,13 +78,13 @@ pub use writing::create_bit_buffer;
 pub trait BodyProperties {
     type FieldsPresentFlags;
     type FieldsPresentField: Default;
-    const FIELDS_PRESENT_LENGTH: usize;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = 0;
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         Default::default()
     }
     fn body_length_bits(&self) -> usize;
     fn fields_present_length(&self) -> usize {
-        Self::FIELDS_PRESENT_LENGTH
+        Self::FIELDS_PRESENT_FLAGS_LENGTH
     }
     fn into_cdis_body(self) -> CdisBody;
 }

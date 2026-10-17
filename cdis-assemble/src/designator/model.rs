@@ -23,7 +23,7 @@ pub struct Designator {
 impl BodyProperties for Designator {
     type FieldsPresentFlags = DesignatorFieldsPresentFlags;
     type FieldsPresentField = u8;
-    const FIELDS_PRESENT_LENGTH: usize = 4;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = FOUR_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         let mut flags = Self::FieldsPresentFlags::empty();
@@ -51,7 +51,7 @@ impl BodyProperties for Designator {
 
     fn body_length_bits(&self) -> usize {
         // 3 bits = Units + Full Update Flag
-        let mut length = Self::FIELDS_PRESENT_LENGTH + THREE_BITS;
+        let mut length = Self::FIELDS_PRESENT_FLAGS_LENGTH + THREE_BITS;
 
         length += self.designating_entity_id.record_length();
 

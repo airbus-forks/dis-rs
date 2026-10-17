@@ -34,7 +34,7 @@ pub struct Detonation {
 impl BodyProperties for Detonation {
     type FieldsPresentFlags = DetonationFieldsPresent;
     type FieldsPresentField = u8;
-    const FIELDS_PRESENT_LENGTH: usize = THREE_BITS;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = THREE_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
@@ -61,7 +61,7 @@ impl BodyProperties for Detonation {
 
     fn body_length_bits(&self) -> usize {
         const CONST_BIT_SIZE: usize = TWO_BITS; // Units flags
-        Self::FIELDS_PRESENT_LENGTH
+        Self::FIELDS_PRESENT_FLAGS_LENGTH
             + CONST_BIT_SIZE
             + self.source_entity_id.record_length()
             + self.target_entity_id.record_length()

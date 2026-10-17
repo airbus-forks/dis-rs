@@ -44,7 +44,7 @@ pub struct Transmitter {
 impl BodyProperties for Transmitter {
     type FieldsPresentFlags = TransmitterFieldsPresent;
     type FieldsPresentField = u8;
-    const FIELDS_PRESENT_LENGTH: usize = EIGHT_BITS;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = EIGHT_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.radio_type.is_some() {

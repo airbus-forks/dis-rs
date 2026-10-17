@@ -26,7 +26,7 @@ pub struct Fire {
 impl BodyProperties for Fire {
     type FieldsPresentFlags = FireFieldsPresent;
     type FieldsPresentField = u8;
-    const FIELDS_PRESENT_LENGTH: usize = FOUR_BITS;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = FOUR_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.fire_mission_index.is_some() {
@@ -50,7 +50,7 @@ impl BodyProperties for Fire {
 
     fn body_length_bits(&self) -> usize {
         const CONST_BIT_SIZE: usize = 1; // Units flag
-        Self::FIELDS_PRESENT_LENGTH
+        Self::FIELDS_PRESENT_FLAGS_LENGTH
             + CONST_BIT_SIZE
             + self.firing_entity_id.record_length()
             + self.target_entity_id.record_length()

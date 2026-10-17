@@ -20,7 +20,6 @@ pub struct Collision {
 impl BodyProperties for Collision {
     type FieldsPresentFlags = ();
     type FieldsPresentField = ();
-    const FIELDS_PRESENT_LENGTH: usize = 0;
 
     fn body_length_bits(&self) -> usize {
         const CONST_BIT_SIZE: usize = 3; // Units flags + CollisionType

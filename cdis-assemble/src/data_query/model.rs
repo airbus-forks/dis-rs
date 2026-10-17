@@ -1,4 +1,4 @@
-use crate::constants::{THIRTY_TWO_BITS, TWENTY_SIX_BITS};
+use crate::constants::{THIRTY_TWO_BITS, TWENTY_SIX_BITS, TWO_BITS};
 use crate::records::model::{CdisRecord, CdisTimestamp, EntityId};
 use crate::types::model::{UVINT8, UVINT32, VarInt};
 use crate::{BodyProperties, CdisBody, CdisInteraction};
@@ -18,7 +18,7 @@ pub struct DataQuery {
 impl BodyProperties for DataQuery {
     type FieldsPresentFlags = DataQueryFieldsPresent;
     type FieldsPresentField = u8;
-    const FIELDS_PRESENT_LENGTH: usize = 2;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = TWO_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if !self.fixed_datum_ids.is_empty() {
@@ -33,7 +33,7 @@ impl BodyProperties for DataQuery {
     }
 
     fn body_length_bits(&self) -> usize {
-        Self::FIELDS_PRESENT_LENGTH
+        Self::FIELDS_PRESENT_FLAGS_LENGTH
             + self.originating_id.record_length()
             + self.receiving_id.record_length()
             + self.request_id.record_length()

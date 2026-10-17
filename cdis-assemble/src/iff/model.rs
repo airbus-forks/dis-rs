@@ -1,6 +1,6 @@
 use crate::constants::{
     EIGHT_BITS, EIGHTY_SIX_BITS, FIFTEEN_BITS, FIVE_BITS, FORTY_BITS, HUNDRED_TWELVE_BITS,
-    NINETY_EIGHT_BITS, ONE_BIT, SIX_BITS, SIXTEEN_BITS, TWENTY_BITS, TWENTY_FOUR_BITS,
+    NINETY_EIGHT_BITS, ONE_BIT, SIX_BITS, SIXTEEN_BITS, TWELVE_BITS, TWENTY_BITS, TWENTY_FOUR_BITS,
 };
 use crate::records::model::FrequencyFloat;
 use crate::records::model::{BeamData, CdisRecord, LayerHeader};
@@ -34,7 +34,7 @@ pub struct Iff {
 impl BodyProperties for Iff {
     type FieldsPresentFlags = IffLayer1FieldsPresent;
     type FieldsPresentField = u16;
-    const FIELDS_PRESENT_LENGTH: usize = 12;
+    const FIELDS_PRESENT_FLAGS_LENGTH: usize = TWELVE_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
         (if self.event_id.is_some() {
