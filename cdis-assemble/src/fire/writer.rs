@@ -7,52 +7,22 @@ impl SerializeCdis for Fire {
     #[allow(clippy::let_and_return)]
     fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
         let fields_present = self.fields_present_field();
-
         let cursor = write_integer_bits(buf, cursor, self.fields_present_length(), fields_present);
+
         let cursor = write_integer_bits(buf, cursor, ONE_BIT, u8::from(self.units));
+
         let cursor = self.firing_entity_id.serialize(buf, cursor);
         let cursor = self.target_entity_id.serialize(buf, cursor);
-        let cursor = self.munition_expandable_entity_id.serialize(buf, cursor);
+        let cursor = self.munition_expendable_entity_id.serialize(buf, cursor);
         let cursor = self.event_id.serialize(buf, cursor);
+
         let cursor = serialize_when_present(&self.fire_mission_index, buf, cursor);
+
         let cursor = self.location_world_coordinates.serialize(buf, cursor);
         let cursor = self.descriptor_entity_type.serialize(buf, cursor);
 
-        // Descriptor::Warhead and Descriptor::Fuze share the same FieldPresentFlag, and it is
-        // sufficient for only one of them to be non-zero to raise the flag
-        let cursor = if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
-            let cursor = if let Some(warhead) = self.descriptor_warhead {
-                warhead.serialize(buf, cursor)
-            } else {
-                0u16.serialize(buf, cursor)
-            };
-            let cursor = if let Some(fuze) = self.descriptor_fuze {
-                fuze.serialize(buf, cursor)
-            } else {
-                0u16.serialize(buf, cursor)
-            };
-            cursor
-        } else {
-            cursor
-        };
-
-        // Descriptor::Quantity and Descriptor::Rate share the same FieldPresentFlag, and it is
-        // sufficient for only one of them to be non-zero to raise the flag
-        let cursor = if self.descriptor_quantity.is_some() || self.descriptor_rate.is_some() {
-            let cursor = if let Some(quantity) = self.descriptor_quantity {
-                quantity.serialize(buf, cursor)
-            } else {
-                0u8.serialize(buf, cursor)
-            };
-            let cursor = if let Some(rate) = self.descriptor_rate {
-                rate.serialize(buf, cursor)
-            } else {
-                0u8.serialize(buf, cursor)
-            };
-            cursor
-        } else {
-            cursor
-        };
+        let cursor = serialize_when_present(&self.descriptor_warhead_fuse, buf, cursor);
+        let cursor = serialize_when_present(&self.descriptor_quantity_rate, buf, cursor);
 
         let cursor = self.velocity.serialize(buf, cursor);
         let cursor = serialize_when_present(&self.range, buf, cursor);
@@ -77,7 +47,7 @@ mod tests {
             units: UnitsDekameters::Dekameter,
             firing_entity_id: EntityId::new(UVINT16::from(1), UVINT16::from(1), UVINT16::from(1)),
             target_entity_id: EntityId::new(UVINT16::from(2), UVINT16::from(2), UVINT16::from(2)),
-            munition_expandable_entity_id: EntityId::new(
+            munition_expendable_entity_id: EntityId::new(
                 UVINT16::from(1),
                 UVINT16::from(1),
                 UVINT16::from(2),
@@ -94,10 +64,8 @@ mod tests {
                 UVINT8::from(0),
                 UVINT8::from(0),
             ),
-            descriptor_warhead: None,
-            descriptor_fuze: None,
-            descriptor_quantity: None,
-            descriptor_rate: None,
+            descriptor_warhead_fuse: None,
+            descriptor_quantity_rate: None,
             velocity: LinearVelocity::new(SVINT16::from(1), SVINT16::from(1), SVINT16::from(1)),
             range: None,
         }

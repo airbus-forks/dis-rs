@@ -1,7 +1,7 @@
 use crate::constants::{EIGHT_BITS, FOUR_BITS, ONE_BIT, SIXTEEN_BITS};
-use crate::fire::model::{Fire, FireFieldsPresent};
+use crate::fire::model::{Fire, FireFieldsPresentFlags};
 use crate::parsing::{BitInput, parse_field_when_present};
-use crate::records::model::UnitsDekameters;
+use crate::records::model::{DescriptorQuantityRate, DescriptorWarheadFuse, UnitsDekameters};
 use crate::records::parser::{
     entity_identification, entity_type, linear_velocity, world_coordinates,
 };
@@ -18,42 +18,50 @@ pub(crate) fn fire_body(input: BitInput) -> IResult<BitInput, CdisBody> {
 
     let (input, firing_entity_id) = entity_identification(input)?;
     let (input, target_entity_id) = entity_identification(input)?;
-    let (input, munition_expandable_entity_id) = entity_identification(input)?;
+    let (input, munition_expendable_entity_id) = entity_identification(input)?;
     let (input, event_id) = entity_identification(input)?;
 
     let (input, fire_mission_index) = parse_field_when_present(
         fields_present,
-        FireFieldsPresent::FIRE_MISSION_INDEX_BIT,
+        FireFieldsPresentFlags::FIRE_MISSION_INDEX.bits(),
         uvint32,
     )(input)?;
 
     let (input, location_world_coordinates) = world_coordinates(input)?;
     let (input, descriptor_entity_type) = entity_type(input)?;
+
     let (input, descriptor_warhead) = parse_field_when_present(
         fields_present,
-        FireFieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT,
+        FireFieldsPresentFlags::DESCRIPTOR_WARHEAD_FUSE.bits(),
         take(SIXTEEN_BITS),
     )(input)?;
-    let (input, descriptor_fuze) = parse_field_when_present(
+    let (input, descriptor_fuse) = parse_field_when_present(
         fields_present,
-        FireFieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT,
+        FireFieldsPresentFlags::DESCRIPTOR_WARHEAD_FUSE.bits(),
         take(SIXTEEN_BITS),
     )(input)?;
+    let descriptor_warhead_fuse = DescriptorWarheadFuse::new(descriptor_warhead, descriptor_fuse);
+
     let (input, descriptor_quantity) = parse_field_when_present(
         fields_present,
-        FireFieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT,
+        FireFieldsPresentFlags::DESCRIPTOR_QUANTITY_RATE.bits(),
         take(EIGHT_BITS),
     )(input)?;
     let (input, descriptor_rate) = parse_field_when_present(
         fields_present,
-        FireFieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT,
+        FireFieldsPresentFlags::DESCRIPTOR_QUANTITY_RATE.bits(),
         take(EIGHT_BITS),
     )(input)?;
+    let descriptor_quantity_rate =
+        DescriptorQuantityRate::new(descriptor_quantity, descriptor_rate);
 
     let (input, velocity) = linear_velocity(input)?;
 
-    let (input, range) =
-        parse_field_when_present(fields_present, FireFieldsPresent::RANGE_BIT, uvint32)(input)?;
+    let (input, range) = parse_field_when_present(
+        fields_present,
+        FireFieldsPresentFlags::RANGE.bits(),
+        uvint32,
+    )(input)?;
 
     Ok((
         input,
@@ -61,15 +69,13 @@ pub(crate) fn fire_body(input: BitInput) -> IResult<BitInput, CdisBody> {
             units,
             firing_entity_id,
             target_entity_id,
-            munition_expandable_entity_id,
+            munition_expendable_entity_id,
             event_id,
             fire_mission_index,
             location_world_coordinates,
             descriptor_entity_type,
-            descriptor_warhead,
-            descriptor_fuze,
-            descriptor_quantity,
-            descriptor_rate,
+            descriptor_warhead_fuse,
+            descriptor_quantity_rate,
             velocity,
             range,
         }
@@ -143,13 +149,14 @@ mod tests {
                 EntityId::new(UVINT16::from(2), UVINT16::from(2), UVINT16::from(2))
             );
             assert_eq!(
-                fire.munition_expandable_entity_id,
+                fire.munition_expendable_entity_id,
                 EntityId::new(UVINT16::from(1), UVINT16::from(1), UVINT16::from(2))
             );
             assert_eq!(
                 fire.event_id,
                 EntityId::new(UVINT16::from(1), UVINT16::from(1), UVINT16::from(3))
             );
+            assert!(fire.fire_mission_index.is_none());
             assert_eq!(fire.location_world_coordinates.latitude, 0);
             assert_eq!(fire.location_world_coordinates.longitude, 0);
             assert_eq!(
@@ -168,11 +175,12 @@ mod tests {
                     UVINT8::from(0)
                 )
             );
+            assert!(fire.descriptor_warhead_fuse.is_none());
+            assert!(fire.descriptor_quantity_rate.is_none());
             assert_eq!(
                 fire.velocity,
                 LinearVelocity::new(SVINT16::from(1), SVINT16::from(1), SVINT16::from(1))
             );
-            assert!(fire.descriptor_warhead.is_none());
             assert!(fire.range.is_none());
         } else {
             panic!()

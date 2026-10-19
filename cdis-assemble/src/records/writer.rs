@@ -6,8 +6,9 @@ use crate::constants::{
 use crate::records::model::{
     AngularVelocity, BeamData, CdisArticulatedPartVP, CdisAttachedPartVP, CdisEntityAssociationVP,
     CdisEntityMarking, CdisEntitySeparationVP, CdisEntityTypeVP, CdisHeader, CdisRecord,
-    CdisVariableParameter, EncodingScheme, EntityCoordinateVector, EntityId, EntityType,
-    LayerHeader, LinearAcceleration, LinearVelocity, Orientation, WorldCoordinates,
+    CdisVariableParameter, DescriptorQuantityRate, DescriptorWarheadFuse, EncodingScheme,
+    EntityCoordinateVector, EntityId, EntityType, LayerHeader, LinearAcceleration, LinearVelocity,
+    Orientation, WorldCoordinates,
 };
 use crate::types::model::{CdisFloat, UVINT8};
 use crate::writing::{BitBuffer, SerializeCdis, write_integer_bits};
@@ -348,6 +349,24 @@ impl SerializeCdis for BeamData {
         let cursor = self.el_sweep.serialize(buf, cursor);
         let cursor = write_integer_bits(buf, cursor, TEN_BITS, self.sweep_sync);
 
+        cursor
+    }
+}
+
+impl SerializeCdis for DescriptorWarheadFuse {
+    #[allow(clippy::let_and_return)]
+    fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
+        let cursor = self.warhead.serialize(buf, cursor);
+        let cursor = self.fuse.serialize(buf, cursor);
+        cursor
+    }
+}
+
+impl SerializeCdis for DescriptorQuantityRate {
+    #[allow(clippy::let_and_return)]
+    fn serialize(&self, buf: &mut BitBuffer, cursor: usize) -> usize {
+        let cursor = self.quantity.serialize(buf, cursor);
+        let cursor = self.rate.serialize(buf, cursor);
         cursor
     }
 }

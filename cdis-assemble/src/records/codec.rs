@@ -5,21 +5,23 @@ use crate::constants::{
 use crate::records::model::{
     AngularVelocity, CdisArticulatedPartVP, CdisAttachedPartVP, CdisEntityAssociationVP,
     CdisEntitySeparationVP, CdisEntityTypeVP, CdisHeader, CdisProtocolVersion,
-    CdisVariableParameter, EntityCoordinateVector, EntityId, EntityType, LinearAcceleration,
-    LinearVelocity, Orientation, ParameterValueFloat, UnitsDekameters, WorldCoordinates,
+    CdisVariableParameter, DescriptorQuantityRate, DescriptorWarheadFuse, EntityCoordinateVector,
+    EntityId, EntityType, LinearAcceleration, LinearVelocity, Orientation, ParameterValueFloat,
+    UnitsDekameters, WorldCoordinates,
 };
 use crate::records::model::{BeamData, EncodingScheme, LayerHeader, UnitsMeters};
 use crate::types::model::{
     CdisFloat, SVINT12, SVINT13, SVINT14, SVINT16, SVINT24, UVINT8, UVINT16,
 };
-use dis_rs::enumerations::{Country, EntityKind, PlatformDomain};
+use dis_rs::enumerations::{
+    Country, EntityKind, MunitionDescriptorFuse, MunitionDescriptorWarhead, PlatformDomain,
+};
 use dis_rs::model::{
     ArticulatedPart, AttachedPart, EntityAssociationParameter, EntityTypeParameter, Location,
-    PduHeader, SeparationParameter, VariableParameter, VectorF32,
+    MunitionDescriptor, PduHeader, SeparationParameter, VariableParameter, VectorF32,
 };
 use dis_rs::utils::{ecef_to_geodetic_lla, geodetic_lla_to_ecef};
-use num_traits::FromPrimitive;
-use num_traits::Signed;
+use num_traits::{FromPrimitive, Signed, Zero};
 
 impl Codec for CdisHeader {
     type Counterpart = PduHeader;
@@ -664,6 +666,77 @@ impl Codec for BeamData {
             .with_elevation_center(f32::from(self.el_center.value) / Self::SCALING)
             .with_elevation_sweep(f32::from(self.el_sweep.value) / Self::SCALING)
             .with_sweep_sync(f32::from(self.sweep_sync) / Self::SCALING_2)
+    }
+}
+
+#[must_use]
+pub(crate) fn encode_munition_descriptor(
+    munition: &MunitionDescriptor,
+) -> (
+    EntityType,
+    Option<DescriptorWarheadFuse>,
+    Option<DescriptorQuantityRate>,
+) {
+    let descriptor_warhead = u16::from(munition.warhead);
+    let descriptor_fuse = u16::from(munition.fuse);
+    let descriptor_warhead_fuse = if !(descriptor_warhead.is_zero() && descriptor_fuse.is_zero()) {
+        Some(DescriptorWarheadFuse {
+            warhead: descriptor_warhead,
+            fuse: descriptor_fuse,
+        })
+    } else {
+        None
+    };
+
+    let descriptor_quantity = munition.quantity.min(u16::from(u8::MAX)) as u8;
+    let descriptor_rate = munition.rate.min(u16::from(u8::MAX)) as u8;
+    let descriptor_quantity_rate = if !(descriptor_quantity.is_zero() && descriptor_rate.is_zero())
+    {
+        Some(DescriptorQuantityRate {
+            quantity: descriptor_quantity,
+            rate: descriptor_rate,
+        })
+    } else {
+        None
+    };
+
+    (
+        EntityType::encode(&munition.entity_type),
+        descriptor_warhead_fuse,
+        descriptor_quantity_rate,
+    )
+}
+
+#[must_use]
+pub(crate) fn decode_munition_descriptor(
+    descriptor_entity_type: &EntityType,
+    descriptor_warhead_fuse: Option<&DescriptorWarheadFuse>,
+    descriptor_quantity_rate: Option<&DescriptorQuantityRate>,
+) -> MunitionDescriptor {
+    let entity_type = descriptor_entity_type.decode();
+    let (warhead, fuse) = if let Some(descriptor) = descriptor_warhead_fuse {
+        (
+            MunitionDescriptorWarhead::from(descriptor.warhead),
+            MunitionDescriptorFuse::from(descriptor.fuse),
+        )
+    } else {
+        (
+            MunitionDescriptorWarhead::default(),
+            MunitionDescriptorFuse::default(),
+        )
+    };
+    let (quantity, rate) = if let Some(descriptor) = descriptor_quantity_rate {
+        (u16::from(descriptor.quantity), u16::from(descriptor.rate))
+    } else {
+        (0u16, 0u16)
+    };
+
+    MunitionDescriptor {
+        entity_type,
+        warhead,
+        fuse,
+        quantity,
+        rate,
     }
 }
 

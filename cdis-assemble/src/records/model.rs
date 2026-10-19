@@ -2,7 +2,8 @@ pub use super::timestamp::{CdisTimeUnits, CdisTimestamp};
 use crate::BitBuffer;
 use crate::constants::{
     EIGHT_BITS, FIFTEEN_BITS, FIVE_BITS, FOUR_BITS, FOURTEEN_BITS, ONE_BIT, SEVENTEEN_BITS,
-    SIXTY_FOUR_BITS, THIRTY_NINE_BITS, THIRTY_TWO_BITS, THREE_BITS, TWENTY_SIX_BITS, TWO_BITS,
+    SIXTEEN_BITS, SIXTY_FOUR_BITS, THIRTY_NINE_BITS, THIRTY_TWO_BITS, THREE_BITS, TWENTY_SIX_BITS,
+    TWO_BITS,
 };
 use crate::parsing::{BitInput, take_signed};
 use crate::records::model::CdisProtocolVersion::{Reserved, SISO_023_2023, StandardDis};
@@ -393,6 +394,52 @@ impl LinearVelocity {
 impl CdisRecord for LinearVelocity {
     fn record_length(&self) -> usize {
         self.x.record_length() + self.y.record_length() + self.z.record_length()
+    }
+}
+
+/// 11.21 Munition Descriptor (Warhead, Fuse)
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct DescriptorWarheadFuse {
+    pub warhead: u16,
+    pub fuse: u16,
+}
+
+impl DescriptorWarheadFuse {
+    #[must_use]
+    pub fn new(warhead: Option<u16>, fuse: Option<u16>) -> Option<Self> {
+        Some(Self {
+            warhead: warhead?,
+            fuse: fuse?,
+        })
+    }
+}
+
+impl CdisRecord for DescriptorWarheadFuse {
+    fn record_length(&self) -> usize {
+        SIXTEEN_BITS + SIXTEEN_BITS
+    }
+}
+
+/// 11.21 Munition Descriptor (Quantity, Rate)
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct DescriptorQuantityRate {
+    pub quantity: u8,
+    pub rate: u8,
+}
+
+impl DescriptorQuantityRate {
+    #[must_use]
+    pub fn new(quantity: Option<u8>, rate: Option<u8>) -> Option<Self> {
+        Some(Self {
+            quantity: quantity?,
+            rate: rate?,
+        })
+    }
+}
+
+impl CdisRecord for DescriptorQuantityRate {
+    fn record_length(&self) -> usize {
+        EIGHT_BITS + EIGHT_BITS
     }
 }
 
