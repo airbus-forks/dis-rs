@@ -1,6 +1,7 @@
 use crate::constants::{EIGHT_BITS, SIXTEEN_BITS, THREE_BITS, TWO_BITS};
-use crate::detonation::model::{Detonation, DetonationFieldsPresent, DetonationUnits};
+use crate::detonation::model::{Detonation, DetonationFieldsPresentFlags, DetonationUnits};
 use crate::parsing::{BitInput, parse_field_when_present};
+use crate::records::model::{DescriptorQuantityRate, DescriptorWarheadFuse};
 use crate::records::parser::{
     entity_coordinate_vector, entity_identification, entity_type, linear_velocity,
     variable_parameter, world_coordinates,
@@ -25,47 +26,38 @@ pub(crate) fn detonation_body(input: BitInput) -> IResult<BitInput, CdisBody> {
     let (input, location_in_world_coordinates) = world_coordinates(input)?;
 
     let (input, descriptor_entity_type) = entity_type(input)?;
+
     let (input, descriptor_warhead) = parse_field_when_present(
         fields_present,
-        DetonationFieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT,
+        DetonationFieldsPresentFlags::DESCRIPTOR_WARHEAD_FUSE.bits(),
         take(SIXTEEN_BITS),
     )(input)?;
-    let (input, descriptor_fuze) = parse_field_when_present(
+    let (input, descriptor_fuse) = parse_field_when_present(
         fields_present,
-        DetonationFieldsPresent::DESCRIPTOR_WARHEAD_FUZE_BIT,
+        DetonationFieldsPresentFlags::DESCRIPTOR_WARHEAD_FUSE.bits(),
         take(SIXTEEN_BITS),
     )(input)?;
+    let descriptor_warhead_fuse = DescriptorWarheadFuse::new(descriptor_warhead, descriptor_fuse);
+
     let (input, descriptor_quantity) = parse_field_when_present(
         fields_present,
-        DetonationFieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT,
+        DetonationFieldsPresentFlags::DESCRIPTOR_QUANTITY_RATE.bits(),
         take(EIGHT_BITS),
     )(input)?;
     let (input, descriptor_rate) = parse_field_when_present(
         fields_present,
-        DetonationFieldsPresent::DESCRIPTOR_QUANTITY_RATE_BIT,
+        DetonationFieldsPresentFlags::DESCRIPTOR_QUANTITY_RATE.bits(),
         take(EIGHT_BITS),
     )(input)?;
-
-    // Note: See `DetonationFieldsPresent` for the reason why the following code is disabled
-    // ---------------------------------------------------------------------------------------------
-    // let (input, descriptor_explosive_material) = parse_field_when_present(
-    //     fields_present,
-    //     DetonationFieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT,
-    //     uvint16,
-    // )(input)?;
-    // let (input, descriptor_explosive_force) = parse_field_when_present(
-    //     fields_present,
-    //     DetonationFieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT,
-    //     ExplosiveForceFloat::parse,
-    // )(input)?;
-    // ---------------------------------------------------------------------------------------------
+    let descriptor_quantity_rate =
+        DescriptorQuantityRate::new(descriptor_quantity, descriptor_rate);
 
     let (input, location_in_entity_coordinates) = entity_coordinate_vector(input)?;
     let (input, detonation_results) = uvint8(input)?;
 
     let (input, number_of_var_params) = parse_field_when_present(
         fields_present,
-        DetonationFieldsPresent::VARIABLE_PARAMETERS_BIT,
+        DetonationFieldsPresentFlags::VARIABLE_PARAMETERS.bits(),
         take(EIGHT_BITS),
     )(input)?;
 
@@ -86,12 +78,8 @@ pub(crate) fn detonation_body(input: BitInput) -> IResult<BitInput, CdisBody> {
             entity_linear_velocity,
             location_in_world_coordinates,
             descriptor_entity_type,
-            descriptor_warhead,
-            descriptor_fuze,
-            descriptor_quantity,
-            descriptor_rate,
-            descriptor_explosive_material: None,
-            descriptor_explosive_force: None,
+            descriptor_warhead_fuse,
+            descriptor_quantity_rate,
             location_in_entity_coordinates,
             detonation_results,
             variable_parameters,
@@ -212,8 +200,8 @@ mod tests {
                     UVINT8::from(0)
                 )
             );
-            assert!(detonation.descriptor_warhead.is_none());
-            assert!(detonation.descriptor_quantity.is_none());
+            assert!(detonation.descriptor_warhead_fuse.is_none());
+            assert!(detonation.descriptor_quantity_rate.is_none());
             assert_eq!(
                 detonation.location_in_entity_coordinates,
                 EntityCoordinateVector::new(SVINT16::from(0), SVINT16::from(0), SVINT16::from(0))

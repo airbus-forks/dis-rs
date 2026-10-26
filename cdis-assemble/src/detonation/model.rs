@@ -1,12 +1,14 @@
-use crate::constants::{EIGHT_BITS, FIFTEEN_BITS, SIXTEEN_BITS, THREE_BITS, TWO_BITS};
+use crate::constants::{EIGHT_BITS, FIFTEEN_BITS, THREE_BITS, TWO_BITS};
 use crate::parsing::{BitInput, take_signed};
 use crate::records::model::{
-    CdisRecord, CdisVariableParameter, EntityCoordinateVector, EntityId, EntityType,
-    LinearVelocity, UnitsDekameters, UnitsMeters, WorldCoordinates,
+    CdisRecord, CdisVariableParameter, DescriptorQuantityRate, DescriptorWarheadFuse,
+    EntityCoordinateVector, EntityId, EntityType, LinearVelocity, UnitsDekameters, UnitsMeters,
+    WorldCoordinates,
 };
-use crate::types::model::{CdisFloat, UVINT8, UVINT16, VarInt};
+use crate::types::model::{CdisFloat, UVINT8, VarInt};
 use crate::writing::write_integer_bits;
 use crate::{BitBuffer, BodyProperties, CdisBody, CdisInteraction};
+use bitflags::bitflags;
 use nom::IResult;
 use nom::bits::complete::take;
 
@@ -20,98 +22,75 @@ pub struct Detonation {
     pub entity_linear_velocity: LinearVelocity,
     pub location_in_world_coordinates: WorldCoordinates,
     pub descriptor_entity_type: EntityType,
-    pub descriptor_warhead: Option<u16>,
-    pub descriptor_fuze: Option<u16>,
-    pub descriptor_quantity: Option<u8>,
-    pub descriptor_rate: Option<u8>,
-    pub descriptor_explosive_material: Option<UVINT16>,
-    pub descriptor_explosive_force: Option<ExplosiveForceFloat>,
+    pub descriptor_warhead_fuse: Option<DescriptorWarheadFuse>,
+    pub descriptor_quantity_rate: Option<DescriptorQuantityRate>,
+    // NOTE The C-DIS standard (SISO-STD-023-2023: [13.4]) does not provide information about how to
+    //      include the specific fields of the Explosion Descriptor (namely: Explosive Material and
+    //      Explosive Force) in the Detonation PDU, despite listing the Explosion Descriptor as a
+    //      valid type for the Descriptor field. The Explosion Descriptor is only described in the
+    //      DIS standard (IEEE 1278.1-2012: [6.2.19.3]).
+    // pub descriptor_explosive_material: Option<UVINT16>,
+    // pub descriptor_explosive_force: Option<ExplosiveForceFloat>,
     pub location_in_entity_coordinates: EntityCoordinateVector,
     pub detonation_results: UVINT8,
     pub variable_parameters: Vec<CdisVariableParameter>,
 }
 
 impl BodyProperties for Detonation {
-    type FieldsPresentFlags = DetonationFieldsPresent;
+    type FieldsPresentFlags = DetonationFieldsPresentFlags;
     type FieldsPresentField = u8;
     const FIELDS_PRESENT_FLAGS_LENGTH: usize = THREE_BITS;
 
     fn fields_present_field(&self) -> Self::FieldsPresentField {
-        (if self.descriptor_warhead.is_some() || self.descriptor_fuze.is_some() {
-            Self::FieldsPresentFlags::DESCRIPTOR_WARHEAD_FUZE_BIT
-        } else {
-            0
-        }) | (if self.descriptor_quantity.is_some() || self.descriptor_rate.is_some() {
-            Self::FieldsPresentFlags::DESCRIPTOR_QUANTITY_RATE_BIT
-        } else {
-            0
-        }) | (if self.descriptor_explosive_material.is_some()
-            && self.descriptor_explosive_force.is_some()
-        {
-            // TODO SISO-STD-023-2023: [13.4] does not include a DESCRIPTOR_EXPLOSIVE_BIT
-            0 // Self::FieldsPresent::DESCRIPTOR_EXPLOSIVE_BIT
-        } else {
-            0
-        }) | (if !self.variable_parameters.is_empty() {
-            Self::FieldsPresentFlags::VARIABLE_PARAMETERS_BIT
-        } else {
-            0
-        })
+        let mut flags = Self::FieldsPresentFlags::empty();
+
+        if self.descriptor_warhead_fuse.is_some() {
+            flags.insert(Self::FieldsPresentFlags::DESCRIPTOR_WARHEAD_FUSE);
+        }
+        if self.descriptor_quantity_rate.is_some() {
+            flags.insert(Self::FieldsPresentFlags::DESCRIPTOR_QUANTITY_RATE);
+        }
+        if !self.variable_parameters.is_empty() {
+            flags.insert(Self::FieldsPresentFlags::VARIABLE_PARAMETERS);
+        }
+
+        flags.bits()
     }
 
     fn body_length_bits(&self) -> usize {
-        const CONST_BIT_SIZE: usize = TWO_BITS; // Units flags
-        Self::FIELDS_PRESENT_FLAGS_LENGTH
-            + CONST_BIT_SIZE
-            + self.source_entity_id.record_length()
+        // 1 bit = Units
+        let mut length = Self::FIELDS_PRESENT_FLAGS_LENGTH + TWO_BITS;
+
+        length += self.source_entity_id.record_length()
             + self.target_entity_id.record_length()
             + self.exploding_entity_id.record_length()
             + self.event_id.record_length()
             + self.entity_linear_velocity.record_length()
             + self.location_in_world_coordinates.record_length()
-            + self.descriptor_entity_type.record_length()
-            + (if self.descriptor_warhead.is_some() {
-                SIXTEEN_BITS
-            } else {
-                0
-            })
-            + (if self.descriptor_fuze.is_some() {
-                SIXTEEN_BITS
-            } else {
-                0
-            })
-            + (if self.descriptor_quantity.is_some() {
-                EIGHT_BITS
-            } else {
-                0
-            })
-            + (if self.descriptor_rate.is_some() {
-                EIGHT_BITS
-            } else {
-                0
-            })
-            + (if let Some(record) = self.descriptor_explosive_material {
-                record.record_length()
-            } else {
-                0
-            })
-            + (if let Some(record) = self.descriptor_explosive_force {
-                record.record_length()
-            } else {
-                0
-            })
-            + self.location_in_entity_coordinates.record_length()
-            + self.detonation_results.record_length()
-            + (if self.variable_parameters.is_empty() {
-                0
-            } else {
-                EIGHT_BITS
-                    + self
-                        .variable_parameters
-                        .iter()
-                        .map(crate::records::model::CdisRecord::record_length)
-                        .sum::<usize>()
-            })
+            + self.descriptor_entity_type.record_length();
+
+        if let Some(descriptor_warhead_fuse) = self.descriptor_warhead_fuse {
+            length += descriptor_warhead_fuse.record_length();
+        }
+
+        if let Some(descriptor_quantity_rate) = self.descriptor_quantity_rate {
+            length += descriptor_quantity_rate.record_length();
+        }
+
+        length += self.location_in_entity_coordinates.record_length()
+            + self.detonation_results.record_length();
+
+        if !self.variable_parameters.is_empty() {
+            // 8 bits = Number Of Variable Parameter Records
+            length += EIGHT_BITS
+                + self
+                    .variable_parameters
+                    .iter()
+                    .map(CdisRecord::record_length)
+                    .sum::<usize>();
+        }
+
+        length
     }
 
     fn into_cdis_body(self) -> CdisBody {
@@ -129,14 +108,13 @@ impl CdisInteraction for Detonation {
     }
 }
 
-pub struct DetonationFieldsPresent;
-
-impl DetonationFieldsPresent {
-    // TODO SISO-STD-023-2023: [13.4] does not include a DESCRIPTOR_EXPLOSIVE_BIT
-    pub const DESCRIPTOR_WARHEAD_FUZE_BIT: u8 = 0x04; // 0x08
-    pub const DESCRIPTOR_QUANTITY_RATE_BIT: u8 = 0x02; // 0x04
-    // pub const DESCRIPTOR_EXPLOSIVE_BIT: u8 = 0x02;
-    pub const VARIABLE_PARAMETERS_BIT: u8 = 0x01;
+bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct DetonationFieldsPresentFlags: <Detonation as BodyProperties>::FieldsPresentField {
+        const DESCRIPTOR_WARHEAD_FUSE = 0x04;
+        const DESCRIPTOR_QUANTITY_RATE = 0x02;
+        const VARIABLE_PARAMETERS = 0x01;
+    }
 }
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
@@ -149,6 +127,7 @@ impl From<u8> for DetonationUnits {
     fn from(value: u8) -> Self {
         const WORLD_LOCATION_ALTITUDE_BIT: u8 = 0x02;
         const LOCATION_IN_ENTITY_COORDINATES_BIT: u8 = 0x01;
+
         Self {
             world_location_altitude: UnitsDekameters::from(
                 (value & WORLD_LOCATION_ALTITUDE_BIT) >> 1,
